@@ -1,0 +1,208 @@
+{
+	"compiler": {
+		"version": "0.8.7+commit.e28d00a7"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "firstAdmin",
+						"type": "address"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "addVerified",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "addVerifier",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "isVerified",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "isVerifier",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "removeVerified",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "removeVerifier",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "voteToAdd",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "voteToRemove",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {
+				"addVerified(address)": {
+					"details": "Adds verified address to the contract."
+				},
+				"addVerifier(address)": {
+					"details": "Add verifier to the contract."
+				},
+				"isVerified(address)": {
+					"details": "Checks if a address is verified"
+				},
+				"isVerifier(address)": {
+					"details": "Checks if an address is a verifier"
+				},
+				"removeVerified(address)": {
+					"details": "Removes verified address from the contract."
+				},
+				"removeVerifier(address)": {
+					"details": "Remove verifier from the contract."
+				}
+			},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"contracts/ComplexVerify.sol": "ComplexVerify"
+		},
+		"evmVersion": "london",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"contracts/ComplexVerify.sol": {
+			"keccak256": "0xfe6a2bf53e4ccb2b691069f69d24c8aef9a4f8362a3c21c381980828566b0eec",
+			"license": "GPL-3.0",
+			"urls": [
+				"bzz-raw://abe981805751df3de7810cc7d67ea8e04dea86a31e5c42e492b4a578b0ceb17b",
+				"dweb:/ipfs/QmTLnr2bNXiJU4Up16VhaAez7nA4Ji3n4yedfuaWQQn8pW"
+			]
+		},
+		"contracts/Election.sol": {
+			"keccak256": "0x43cdffeecb94bb62107ab4075a3396ec8b398082f1dea049a8c7a66af64b8f3b",
+			"license": "GPL-3.0",
+			"urls": [
+				"bzz-raw://6ee9f3ee821849da990559933fb360c671f17a3c405f57a2ce37b25e687e60e9",
+				"dweb:/ipfs/Qmchg3yvAdJ7as5Tvj6Eo2vBBUxL1TCe8TXroXiwz16529"
+			]
+		},
+		"contracts/Verify.sol": {
+			"keccak256": "0x1e8e63c85f57988e5bd62dcc51da4cbe61779834995c44b7407ccdfb6a4b2df5",
+			"license": "GPL-3.0",
+			"urls": [
+				"bzz-raw://b8f55fc1c24ac94f2cd833df6f83b7b91ebc087f7a58531d75a964b63140106f",
+				"dweb:/ipfs/QmdGyYuc9JuPnfQTzCnintNVX98raEB6kAxYvhncGZBhzD"
+			]
+		}
+	},
+	"version": 1
+}

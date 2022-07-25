@@ -1,0 +1,236 @@
+{
+	"compiler": {
+		"version": "0.8.7+commit.e28d00a7"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "addVerified",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "addVerifier",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "beforeAll",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "isVerified",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "isVerifier",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "removeVerified",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "removeVerifier",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "testAddVerifiedAddress",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "testAddVerifier",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "testRemoveVerifier",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "vvs",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {
+				"addVerified(address)": {
+					"details": "Adds verified address to the contract."
+				},
+				"addVerifier(address)": {
+					"details": "Add verifier to the contract."
+				},
+				"isVerified(address)": {
+					"details": "Checks if a address is verified"
+				},
+				"isVerifier(address)": {
+					"details": "Checks if an address is a verifier"
+				},
+				"removeVerified(address)": {
+					"details": "Removes verified address from the contract."
+				},
+				"removeVerifier(address)": {
+					"details": "Remove verifier from the contract."
+				}
+			},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {
+				"testAddVerifiedAddress()": {
+					"notice": "Add a verified address (acc2) using the new verifier (acc1) #sender: account-1"
+				},
+				"testAddVerifier()": {
+					"notice": "Add a verifier (acc1) using the admin (acc0) #sender: account-0"
+				},
+				"testRemoveVerifier()": {
+					"notice": "Remove a verifier (acc1) using the admin (acc0) #sender: account-0"
+				},
+				"vvs()": {
+					"notice": "#sender: account-0"
+				}
+			},
+			"notice": "#sender: account-0",
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"tests/SimpleVerify_test.sol": "SimpleVerifyTest"
+		},
+		"evmVersion": "london",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"contracts/SimpleVerify.sol": {
+			"keccak256": "0xa535b658a73a4aee41a18db7c37f5c92f79979892fb1429f40e4c89a4850e365",
+			"license": "GPL-3.0",
+			"urls": [
+				"bzz-raw://83f7d6bc1c87ebfc512b5506da24239d1003e5c8585c25ad377b60457a79ad70",
+				"dweb:/ipfs/QmP8dxr5KYh3NyQk42hekZ4TTMBBiMyhNeW5chVSx52HLm"
+			]
+		},
+		"contracts/Verify.sol": {
+			"keccak256": "0xf8b60608b0dbdcb4b51a79226bc20662852fbc20f52e1e9741a1aaa77741eabc",
+			"license": "GPL-3.0",
+			"urls": [
+				"bzz-raw://02a606878a511eac8a80a92460cab0fe2b0cf79f3954d05686e5281d02387288",
+				"dweb:/ipfs/QmYz1kaEjLhaoBSDpAhKowVXeYw1ppKfjDzvPczqkQC27y"
+			]
+		},
+		"remix_accounts.sol": {
+			"keccak256": "0x198a94b8e0342a81c31fda8ba387964155802ef81807e01e83e2320682dce327",
+			"license": "GPL-3.0",
+			"urls": [
+				"bzz-raw://db7d9939731e6fe2030d53b80f57ce2c1f8044209c1c67e634e81160227d3019",
+				"dweb:/ipfs/QmRLYhZ2Y6bfh83QSD2hCnhVFejevzh77zUTohCCC8yCtu"
+			]
+		},
+		"remix_tests.sol": {
+			"keccak256": "0xe2783cdc204cba8c72494119339f1d90f9022b15d6c718c668b7f097d8e29787",
+			"license": "GPL-3.0",
+			"urls": [
+				"bzz-raw://bb6a22e64c7f16bcaab63b1c1a1b269d5be8a6d37bdd9dec1718477ab916b18e",
+				"dweb:/ipfs/QmdkW1tT5iadBvaHMCoskhDGZKnfdg8o1D9CcoQYtdJet7"
+			]
+		},
+		"tests/SimpleVerify_test.sol": {
+			"keccak256": "0xf1358ea29164fc7d94cf67598eece86aac7325e04ef78a4f33aa7b54703f0186",
+			"license": "GPL-3.0",
+			"urls": [
+				"bzz-raw://592919c78329b34b32cbb94394d13d0dbbac28eadb1390c5e4de98a3322b14dc",
+				"dweb:/ipfs/QmTnuwQiNtqTVxZD5o43LiysV16rfJEAaeYY76JsPAwPDm"
+			]
+		}
+	},
+	"version": 1
+}
