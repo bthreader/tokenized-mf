@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.7.0 <0.9.0;
 
-import "contracts/Verify.sol";
+import "contracts/kyc/Verify.sol";
 
 contract SimpleVerify is Verify {
     address internal admin;
@@ -10,7 +10,7 @@ contract SimpleVerify is Verify {
         admin = msg.sender;
     }
 
-    modifier senderIsAdmin override {
+    modifier onlyAdmin override {
         require(
             admin == msg.sender,
             "You are not an admin"

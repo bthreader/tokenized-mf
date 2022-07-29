@@ -9,7 +9,7 @@ contract Verify {
      * @dev Check if the sender has the right role.
      */
     
-    modifier senderIsAdmin virtual {
+    modifier onlyAdmin virtual {
         // Everyone is an admin
         require(
             true,
@@ -18,7 +18,7 @@ contract Verify {
         _;
     }
     
-    modifier senderIsVerifier {
+    modifier onlyVerifier {
         require(
             verifiers[msg.sender] == true,
             "You are not a verifier"
@@ -26,7 +26,7 @@ contract Verify {
         _;
     }
 
-    modifier senderIsVerified {
+    modifier onlyVerified {
         require(
             verifiedAddresses[msg.sender] == true,
             "You are not verified"
@@ -37,7 +37,7 @@ contract Verify {
     /**
      * @dev Add verifier to the contract.
      */
-    function addVerifier(address addr) senderIsAdmin public {       
+    function addVerifier(address addr) onlyAdmin public {       
         require(
             addr != address(0),
             "Zero address cannot be a verifier"
@@ -54,7 +54,7 @@ contract Verify {
     /**
      * @dev Remove verifier from the contract.
      */
-    function removeVerifier(address addr) senderIsAdmin public {
+    function removeVerifier(address addr) onlyAdmin public {
         require(
             verifiers[addr] == true,
             "Cannot remove an address that is not already a verifier"
@@ -66,7 +66,7 @@ contract Verify {
     /**
      * @dev Adds verified address to the contract.
      */
-    function addVerified(address addr) senderIsVerifier public {
+    function addVerified(address addr) onlyVerifier public {
         require(
             addr != address(0),
             "Cannot verify the zero address"
@@ -83,7 +83,7 @@ contract Verify {
     /**
      * @dev Removes verified address from the contract.
      */
-    function removeVerified(address addr) senderIsVerifier public {      
+    function removeVerified(address addr) onlyVerifier public {      
         verifiedAddresses[addr] = false;
     }
     
