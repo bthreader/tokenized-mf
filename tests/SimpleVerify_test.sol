@@ -8,9 +8,9 @@ import "../contracts/kyc/SimpleVerify.sol";
 
 /// #sender: account-0
 contract SimpleVerifyTest is SimpleVerify {
-    address acc0;
-    address acc1;
-    address acc2;
+    address private acc0;
+    address private acc1;
+    address private acc2;
     
     function beforeAll() public {
         acc0 = TestsAccounts.getAccount(0);
@@ -19,29 +19,20 @@ contract SimpleVerifyTest is SimpleVerify {
     }
 
     /// #sender: account-0
-    function accountZeroIsAdminOnConstruct() public {
-        Assert.ok(admin == acc0, "wrong admin added");
-    }
-
-    /// #sender: account-0
-    function addAccountOneAsVerifierUsingAccountZero() public {
+    function accountZeroaddsAccountOneAsVerifier() public {
         addVerifier(acc1);
         Assert.ok(isVerifier(acc1), "address not a verifier");
     }
 
     /// #sender: account-1
-    function addAccountTwoAsVerifiedUsingAccountOne() public {
+    function accountOneVerifiesAccountTwo() public {
         addVerified(acc2);
         Assert.ok(isVerified(acc2), "address not verified");
     }
 
     /// #sender: account-0
-    function removeAccountOneFromVerifiersUsingAccountZero() public {
+    function accountZeroRemovesAccountOneFromVerifiers() public {
         removeVerifier(acc1);
-        Assert.equal(
-            isVerifier(acc1), 
-            false, 
-            "address is still a verifier"
-        );
+        Assert.ok(!isVerifier(acc1), "address is still a verifier");
     }
 }

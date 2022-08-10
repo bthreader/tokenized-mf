@@ -8,9 +8,9 @@ import "../contracts//kyc/ComplexVerify.sol";
 
 /// #sender: account-0
 contract ComplexVerifyTest is ComplexVerify {
-    address acc0;
-    address acc1;
-    address acc2;
+    address private acc0;
+    address private acc1;
+    address private acc2;
     
     function beforeAll() public {
         acc0 = TestsAccounts.getAccount(0);
@@ -21,27 +21,33 @@ contract ComplexVerifyTest is ComplexVerify {
     /// #sender: account-0
     function accountZeroAddsAccountOneAsAdmin() public {
         voteToAdd(acc1);
-        Assert.ok(admins[acc1],"acc1 not added to admins");
-        Assert.ok(totalAdmins == 2, "totalAdmins not updated");
+        Assert.ok(_admins[acc1],"acc1 not added to admins");
+        Assert.ok(_totalAdmins == 2, "totalAdmins not updated");
     }
 
     /// #sender: account-0
-    function accountZeroVotesToAddTwoAsAdmin() public {
+    function accountZeroVotesToAddAccountTwoAsAdmin() public {
         voteToAdd(acc2);
-        Assert.ok(hasElection[acc2] == true, "unfinished election doesn't persist");
+        Assert.ok(
+            address(_elections[acc2]) != address(0x0), 
+            "unfinished election doesn't persist"
+        );
     }
 
     /// #sender: account-1
-    function accountOneVotesToAddTwoAsAdmin() public {
+    function accountOneVotesToAddAccountTwoAsAdmin() public {
         voteToAdd(acc2);
-        Assert.ok(admins[acc2], "acc2 not added to admins");
-        Assert.ok(totalAdmins == 3, "totalAdmins not updated");  
+        Assert.ok(_admins[acc2], "acc2 not added to admins");
+        Assert.ok(_totalAdmins == 3, "totalAdmins not updated");  
     }
 
     /// #sender: account-0
-    function accountZeroVotesToRemoveOneFromAdmins() public {
+    function accountZeroVotesToRemoveAccountOneFromAdmins() public {
         voteToRemove(acc1);
-        Assert.ok(elections[acc1].votes() == 1, "zeros removal vote not registered");
+        Assert.ok(
+            _elections[acc1].votes() == 1, 
+            "zeros removal vote not registered"
+        );
     }
 
     /// #sender: account-1
@@ -50,10 +56,10 @@ contract ComplexVerifyTest is ComplexVerify {
     }
 
     /// #sender: account-2
-    function accountTwoRemovesAccountOneFromAdmins() public {
+    function accountTwoRemovesAccountZeroFromAdmins() public {
         voteToRemove(acc0);
-        Assert.ok(admins[acc0] == false, "acc0 not removed from admins");
-        Assert.ok(totalAdmins == 2, "totalAdmins not updated");  
-        Assert.ok(elections[acc1].votes() == 0, "acc0 votes not removed");
+        Assert.ok(_admins[acc0] == false, "acc0 not removed from admins");
+        Assert.ok(_totalAdmins == 2, "totalAdmins not updated");  
+        Assert.ok(_elections[acc1].votes() == 0, "acc0 votes not removed");
     }
 }

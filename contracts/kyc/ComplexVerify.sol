@@ -1,109 +1,132 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.7.0 <0.9.0;
 
-import "contracts/kyc/Verify.sol";
-import "contracts/kyc/Election.sol";
+import {AbstractVerify} from "./AbstractVerify.sol";
+import {Election} from "./Election.sol";
 
-// Instantiate verify with zero address
-// Doesn't matter because we're overriding admins anyway
-contract ComplexVerify is Verify {
-    uint internal totalAdmins;
-    mapping(address => bool) internal admins;
-    mapping(address => bool) internal hasElection;
-    mapping(address => Election) internal elections;
-    address[] private candidates;
+contract ComplexVerify is AbstractVerify {
+    uint256 internal _totalAdmins;
+    mapping(address => bool) internal _admins;
+    mapping(address => Election) internal _elections;
+    address[] private _candidates;
 
     constructor() {
-        admins[msg.sender] = true;
-        totalAdmins = 1;
+        _admins[msg.sender] = true;
+        _totalAdmins = 1;
     }
+    
+    /**
+     *  @dev Emitted when admin(s) add an `admin` to the contract
+     */
+    event AdminAdded(
+        address indexed admin
+    );
+
+    /**
+     *  @dev Emitted when admin(s) remove an `admin` from the contract
+     */
+    event AdminRemoved(
+        address indexed admin
+    );
     
     modifier onlyAdmin override {
         require(
-            admins[msg.sender] == true,
+            _admins[msg.sender] == true,
             "You are not an admin"
         );
         _;
     }
 
+    /// @param candidateAddr The election candidate being voted on
+    /// @param voterAddr The address voting on the candidates election
     function vote(address candidateAddr, address voterAddr) private {
-        if (hasElection[candidateAddr] == false) {
-            newElectionWithVote(candidateAddr,voterAddr);
+        if (address(_elections[candidateAddr]) == address(0x0)) {
+            newElectionWithVote({
+                candidateAddr: candidateAddr,
+                voterAddr: voterAddr
+            });
         }
 
         else {
-            elections[candidateAddr].vote(voterAddr);
+            _elections[candidateAddr].vote(voterAddr);
         }
     }
 
+    /// @param candidateAddr The candidate we're creating an election for
+    /// @param voterAddr The address voting on the candidates election
     function newElectionWithVote(address candidateAddr, address voterAddr) private {
         // Create new election
         Election election = new Election();
         election.vote(voterAddr);
         
         // Save state
-        elections[candidateAddr] = election;
-        candidates.push(candidateAddr);
-        hasElection[candidateAddr] = true;
+        _elections[candidateAddr] = election;
+        _candidates.push(candidateAddr);
     }
 
+    /// @param election The election we're comparing votes with #admins
     function majorityAchieved(Election election) private view returns (bool) {
-        if (election.votes() > (totalAdmins / 2)) {
+        if (election.votes() > (_totalAdmins / 2)) {
             return true;
         }
         return false;
     }
 
+    /// @param candidateAddr The candidate whose election we want to delete
     function deleteElection(address candidateAddr) private {
-        hasElection[candidateAddr] = false;
-        delete elections[candidateAddr];
+        delete _elections[candidateAddr];
         
-        uint i = 0;
-        while (candidates[i] != candidateAddr) {
+        uint256 i = 0;
+        while (_candidates[i] != candidateAddr) {
             i+=1; 
         }
 
-        candidates[i] = candidates[candidates.length - 1];
-        candidates.pop();
+        _candidates[i] = _candidates[_candidates.length - 1];
+        _candidates.pop();
     }
 
+    /// @param voterToRemove The address whose votes we want to remove
     function removeVoterFromElections(address voterToRemove) private { 
-        uint i = 0;
-        for (i; i<candidates.length; i++) {
-            if (elections[candidates[i]].hasVoted(voterToRemove) == true) {
-                elections[candidates[i]].removeVote(voterToRemove);
+        uint256 i = 0;
+        for (i; i<_candidates.length; i++) {
+            if (_elections[_candidates[i]].hasVoted(voterToRemove) == true) {
+                _elections[_candidates[i]].removeVote(voterToRemove);
             }
         }
     }
 
-    function voteToAdd(address candidateAddr) onlyAdmin public {
+    /// @param candidateAddr The non-admin address we want to vote to add
+    function voteToAdd(address candidateAddr) public onlyAdmin {
         require(
-            admins[candidateAddr] != true,
+            _admins[candidateAddr] != true,
             "This address has already been added as an admin"
         );
         
-        vote(candidateAddr, msg.sender);
+        vote({candidateAddr: candidateAddr, voterAddr: msg.sender});
 
-        if (majorityAchieved(elections[candidateAddr])) { 
-            admins[candidateAddr] = true;
-            totalAdmins += 1;
+        if (majorityAchieved(_elections[candidateAddr])) { 
+            _admins[candidateAddr] = true;
+            _totalAdmins += 1;
             deleteElection(candidateAddr);
+            emit AdminAdded(candidateAddr);
         }
     }
 
-    function voteToRemove(address candidateAddr) onlyAdmin public {
+    /// @param candidateAddr The admin address we want to vote to remove
+    function voteToRemove(address candidateAddr) public onlyAdmin {
         require(
-            admins[candidateAddr] == true,
+            _admins[candidateAddr] == true,
             "Can't remove an address which is not an admin"
         );
 
-        vote(candidateAddr, msg.sender);
+        vote({candidateAddr: candidateAddr, voterAddr: msg.sender});
 
-        if (majorityAchieved(elections[candidateAddr])) { 
-            admins[candidateAddr] = false;
-            totalAdmins -= 1;
+        if (majorityAchieved(_elections[candidateAddr])) { 
+            _admins[candidateAddr] = false;
+            _totalAdmins -= 1;
             deleteElection(candidateAddr);
             removeVoterFromElections(candidateAddr);
+            emit AdminRemoved(candidateAddr);
         }
     }
 }

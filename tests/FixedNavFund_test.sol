@@ -8,9 +8,9 @@ import "contracts/issue/FixedNavFund.sol";
 
 /// #sender: account-0
 contract PotTest is FixedNavFund {
-    address acc0;
-    address acc1;
-    address acc2;
+    address private acc0;
+    address private acc1;
+    address private acc2;
     uint balanceBefore;
     
     function beforeAll() public {
