@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 
-import {OrderList} from "../src/order/nav/OrderList.sol";
+import {OrderList} from "../../src/order/nav/OrderList.sol";
 
 contract ContractTest is Test {
     OrderList private buyList;
@@ -16,7 +16,7 @@ contract ContractTest is Test {
 
     function testOrderAdded() public {
         uint256 orderId;
-        orderId = buyList.queueOrder({addr : acc1, shares : 50});
+        orderId = buyList.enqueue({addr : acc1, shares : 50});
         assertTrue(
             buyList._headId() == orderId,
             "Order not inserted at head"
@@ -29,8 +29,8 @@ contract ContractTest is Test {
 
     function testOrderAddedThenDeque() public {
         uint256 orderId;
-        orderId = buyList.queueOrder({addr : acc1, shares : 50});
-        buyList.deque();
+        orderId = buyList.enqueue({addr : acc1, shares : 50});
+        buyList.dequeue();
         assertTrue(buyList._headId() == 0, "LL not re-iniatilized");
         assertTrue(buyList._tailId() == 0, "LL not re-iniatilized");
     }
@@ -39,12 +39,12 @@ contract ContractTest is Test {
         uint256 firstOrderId;
         uint256 secondOrderId;
 
-        firstOrderId = buyList.queueOrder({addr : acc1, shares : 50});
-        secondOrderId = buyList.queueOrder({addr : acc2, shares : 50});
+        firstOrderId = buyList.enqueue({addr : acc1, shares : 50});
+        secondOrderId = buyList.enqueue({addr : acc2, shares : 50});
         assertTrue(buyList._headId() == firstOrderId, "head id set wrong");
         assertTrue(buyList._tailId() == secondOrderId, "tail id set wrong");
     
-        buyList.deleteOrderById(secondOrderId);
+        buyList.deleteId(secondOrderId);
         assertTrue(
             buyList._headId() == buyList._tailId(),
             "LL not re-iniatilized"

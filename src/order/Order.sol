@@ -14,7 +14,8 @@ contract Order {
         uint256 prevId,
         address addr,
         uint256 shares
-    ) {
+    )
+    {
         _id = id;
         _nextId = nextId;
         _prevId = prevId;
