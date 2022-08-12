@@ -5,6 +5,11 @@ import {AbstractVerify} from "./AbstractVerify.sol";
 import {Election} from "./Election.sol";
 
 contract ComplexVerify is AbstractVerify {
+    
+    /// -----------------------------
+    ///         State
+    /// -----------------------------
+    
     uint256 internal _totalAdmins;
     mapping(address => bool) internal _admins;
     mapping(address => Election) internal _elections;
@@ -14,21 +19,29 @@ contract ComplexVerify is AbstractVerify {
         _admins[msg.sender] = true;
         _totalAdmins = 1;
     }
+
+    /// -----------------------------
+    ///         Events
+    /// -----------------------------
     
     /**
-     *  @dev Emitted when admin(s) add an `admin` to the contract
+     * @dev Emitted when admin(s) add an `admin` to the contract
      */
     event AdminAdded(
         address indexed admin
     );
 
     /**
-     *  @dev Emitted when admin(s) remove an `admin` from the contract
+     * @dev Emitted when admin(s) remove an `admin` from the contract
      */
     event AdminRemoved(
         address indexed admin
     );
-    
+
+    /// -----------------------------
+    ///         Modifiers
+    /// -----------------------------
+        
     modifier onlyAdmin override {
         require(
             _admins[msg.sender] == true,
@@ -37,65 +50,13 @@ contract ComplexVerify is AbstractVerify {
         _;
     }
 
-    /// @param candidateAddr The election candidate being voted on
-    /// @param voterAddr The address voting on the candidates election
-    function vote(address candidateAddr, address voterAddr) private {
-        if (address(_elections[candidateAddr]) == address(0x0)) {
-            newElectionWithVote({
-                candidateAddr: candidateAddr,
-                voterAddr: voterAddr
-            });
-        }
+    /// -----------------------------
+    ///         External
+    /// -----------------------------    
 
-        else {
-            _elections[candidateAddr].vote(voterAddr);
-        }
-    }
-
-    /// @param candidateAddr The candidate we're creating an election for
-    /// @param voterAddr The address voting on the candidates election
-    function newElectionWithVote(address candidateAddr, address voterAddr) private {
-        // Create new election
-        Election election = new Election();
-        election.vote(voterAddr);
-        
-        // Save state
-        _elections[candidateAddr] = election;
-        _candidates.push(candidateAddr);
-    }
-
-    /// @param election The election we're comparing votes with #admins
-    function majorityAchieved(Election election) private view returns (bool) {
-        if (election.votes() > (_totalAdmins / 2)) {
-            return true;
-        }
-        return false;
-    }
-
-    /// @param candidateAddr The candidate whose election we want to delete
-    function deleteElection(address candidateAddr) private {
-        delete _elections[candidateAddr];
-        
-        uint256 i = 0;
-        while (_candidates[i] != candidateAddr) {
-            i+=1; 
-        }
-
-        _candidates[i] = _candidates[_candidates.length - 1];
-        _candidates.pop();
-    }
-
-    /// @param voterToRemove The address whose votes we want to remove
-    function removeVoterFromElections(address voterToRemove) private { 
-        uint256 i = 0;
-        for (i; i<_candidates.length; i++) {
-            if (_elections[_candidates[i]].hasVoted(voterToRemove) == true) {
-                _elections[_candidates[i]].removeVote(voterToRemove);
-            }
-        }
-    }
-
-    /// @param candidateAddr The non-admin address we want to vote to add
+    /**
+     * @param candidateAddr The non-admin address we want to vote to add
+     */
     function voteToAdd(address candidateAddr) public onlyAdmin {
         require(
             _admins[candidateAddr] != true,
@@ -112,7 +73,9 @@ contract ComplexVerify is AbstractVerify {
         }
     }
 
-    /// @param candidateAddr The admin address we want to vote to remove
+    /**
+     * @param candidateAddr The admin address we want to vote to remove
+     */
     function voteToRemove(address candidateAddr) public onlyAdmin {
         require(
             _admins[candidateAddr] == true,
@@ -127,6 +90,80 @@ contract ComplexVerify is AbstractVerify {
             deleteElection(candidateAddr);
             removeVoterFromElections(candidateAddr);
             emit AdminRemoved(candidateAddr);
+        }
+    }
+    
+    /// -----------------------------
+    ///         Private
+    /// ----------------------------- 
+    
+    /**
+     * @param candidateAddr The election candidate being voted on
+     * @param voterAddr The address voting on the candidates election
+     */
+    function vote(address candidateAddr, address voterAddr) private {
+        if (address(_elections[candidateAddr]) == address(0x0)) {
+            newElectionWithVote({
+                candidateAddr: candidateAddr,
+                voterAddr: voterAddr
+            });
+        }
+
+        else {
+            _elections[candidateAddr].vote(voterAddr);
+        }
+    }
+
+    /**
+     * @param candidateAddr The candidate we're creating an election for
+     * @param voterAddr The address voting on the candidates election
+     */
+    function newElectionWithVote(address candidateAddr, address voterAddr)
+        private
+    {
+        // Create new election
+        Election election = new Election();
+        election.vote(voterAddr);
+        
+        // Save state
+        _elections[candidateAddr] = election;
+        _candidates.push(candidateAddr);
+    }
+
+    /**
+     * @param election The election we're comparing votes with #admins
+     */
+    function majorityAchieved(Election election) private view returns (bool) {
+        if (election.votes() > (_totalAdmins / 2)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @param candidateAddr The candidate whose election we want to delete
+     */ 
+    function deleteElection(address candidateAddr) private {
+        delete _elections[candidateAddr];
+        
+        uint256 i = 0;
+        while (_candidates[i] != candidateAddr) {
+            i+=1; 
+        }
+
+        _candidates[i] = _candidates[_candidates.length - 1];
+        _candidates.pop();
+    }
+
+    /**
+     * @param voterToRemove The address whose votes we want to remove
+     */ 
+    function removeVoterFromElections(address voterToRemove) private { 
+        uint256 i = 0;
+        for (i; i<_candidates.length; i++) {
+            if (_elections[_candidates[i]].hasVoted(voterToRemove) == true) {
+                _elections[_candidates[i]].removeVote(voterToRemove);
+            }
         }
     }
 }

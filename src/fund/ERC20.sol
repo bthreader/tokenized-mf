@@ -2,11 +2,145 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import {ComplexVerify} from "../kyc/ComplexVerify.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-contract ERC20 is ComplexVerify {
+contract ERC20 is ComplexVerify, IERC20 {
+    
+    /// -----------------------------
+    ///         State
+    /// -----------------------------
+    
     uint256 public _totalShares;
-    mapping(address => uint256) public _balances;
     mapping(address => mapping(address => uint256)) internal _allowances;
+
+    /// ----------------------------
+    ///         External
+    /// ----------------------------
+
+    /**
+     * @dev See {IERC20-transfer}.
+     */
+    function transfer(address to, uint256 amount) 
+        external 
+        onlyVerified 
+        returns (bool)
+    {
+        require(
+            isVerified(to),
+            "ERC20: can only transfer to verified customers"
+        );
+        require(
+            _balances[msg.sender] >= amount,
+            "ERC20: insufficient funds to make transfer"
+        );
+
+        _transfer({from : msg.sender, to : to, amount : amount});
+        return true;
+    }
+
+    /**
+     * @dev See {IERC20-approve}.
+     */
+    function approve(address spender, uint256 amount)
+        external 
+        onlyVerified 
+        returns (bool)
+    {
+        require(
+            isVerified(spender),
+            "ERC20: can only provide allowances to verified customers"
+        );
+        
+        _approve({
+            owner : msg.sender,
+            spender : spender,
+            amount : amount
+        });
+        return true;
+    }
+
+    /**
+     * @dev Atomically decreases the allowance granted to `spender` by the
+     * caller.
+     */
+    function increaseAllowance(address spender, uint256 addedValue) 
+        external 
+        onlyVerified 
+        returns (bool)
+    {
+        require(
+            isVerified(spender),
+            "ERC20: cannot modify the allowance of a non-verified customer"
+        );
+        
+        _approve({
+            owner : msg.sender,
+            spender : spender,
+            amount : _allowances[msg.sender][spender] + addedValue
+        });
+        return true;
+    }
+
+    /**
+     * @dev Atomically decreases the allowance granted to `spender` by the 
+     * caller.
+     */
+    function decreaseAllowance(address spender, uint256 subtractedValue) 
+        external 
+        onlyVerified 
+        returns (bool)
+    {
+        require(
+            isVerified(spender),
+            "ERC20: cannot modify the allowance of a non-verified customer"
+        );
+        
+        uint256 currentAllowance = _allowances[msg.sender][spender];
+        require(
+            currentAllowance >= subtractedValue,
+            "ERC20: cannot decrease allowance below zero"
+        );
+
+
+        _approve({
+            owner : msg.sender,
+            spender : spender,
+            amount : currentAllowance - subtractedValue
+        });
+        return true;
+    }
+
+    /**
+     * @dev See {IERC20-transferFrom}.
+     */
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external onlyVerified returns (bool) {
+        require(
+            isVerified(to),
+            "ERC20: can only provide allowances to verified customers"
+        );
+        require(
+            _allowances[from][msg.sender] >= amount,
+            "ERC20: insufficient allowance to transfer"
+        );
+        require(
+            _balances[from] >= amount,
+            "ERC20: owner has insufficient funds"
+        );
+
+        unchecked {
+            _allowances[from][msg.sender] -= amount;
+        }
+        _transfer({from : from, to: to, amount : amount});
+        return true;
+    }
+
+    /// ----------------------------
+    ///         Public
+    /// ----------------------------
 
     /**
      * @dev Returns the amount of tokens in existence
@@ -23,88 +157,52 @@ contract ERC20 is ComplexVerify {
     }
 
     /**
-     * @dev Moves `amount` tokens from the caller's account to `to`.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {Transfer} event.
-     */
-    function transfer(address to, uint256 amount) internal returns (bool) {
-        _balances[to] = amount;
-        return true;
-    }
-
-    /**
      * @dev Returns the remaining number of tokens that `spender` will be
      * allowed to spend on behalf of `owner` through {transferFrom}. This is
      * zero by default.
      *
      * This value changes when {approve} or {transferFrom} are called.
      */
-    function allowance(address owner, address spender) public view returns (uint256) {
+    function allowance(address owner, address spender) 
+        public 
+        view
+        returns (uint256) 
+    {
         return _allowances[owner][spender];
     }
 
+
+    /// -----------------------------
+    ///         Internal
+    /// ----------------------------
+
     /**
-     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens
+     * @dev Sets `amount` as the allowance of `spender` over the `owner` s 
+     * tokens.
      *
-     * @return boolean success or failure
+     * Emits an {Approval} event.
      */
-    function approve(address spender, uint256 amount) internal returns (bool) {
-        require(isVerified(spender), "Can only provide allowances to verified customers");
-
-        _allowances[msg.sender][spender] = amount;
-        return true;
-    }
-
-    /**
-     * @dev Atomically increases the allowance granted to `spender` by the caller.
-     */
-    function increaseAllowance(address spender, uint256 addedValue) 
-        public 
-        onlyVerified 
-        returns (bool)
-    {
-        return approve({
-            spender : spender,
-            amount : allowance(msg.sender, spender) + addedValue
-        });
-    }
-
-    /**
-     * @dev Atomically decreases the allowance granted to `spender` by the caller.
-     */
-    function decreaseAllowance(address spender, uint256 subtractedValue) 
-        public 
-        onlyVerified 
-        returns (bool)
-    {
-        return approve({
-            spender : spender,
-            amount : allowance(msg.sender, spender) - subtractedValue
-        });
-    }
-
-    /**
-     * @dev Moves `amount` tokens from `from` to `to` using the
-     * allowance mechanism. `amount` is then deducted from the caller's
-     * allowance.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {Transfer} event.
-     */
-    function transferFrom(
-        address from,
-        address to,
+    function _approve(
+        address owner,
+        address spender,
         uint256 amount
-    ) internal returns (bool) {
-        require(isVerified(from), "Can only provide allowances to verified customers");
-        require(isVerified(to), "Can only provide allowances to verified customers");
-        require(_balances[from] >= amount, "Insufficient balance to transfer");
+    ) internal {
+        _allowances[owner][spender] = amount;
+        emit Approval({owner : owner, spender : spender, value : amount});
+    }
 
-        _balances[to] += amount;
-        _balances[from] -= amount; 
-        return true;
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the `owner` s 
+     * tokens.
+     *
+     *
+     * Emits an {Transfer} event.
+     */
+    function _transfer(address from, address to, uint256 amount) internal {
+        unchecked {
+            _balances[from]-= amount;
+            _balances[to] += amount;
+        }
+        emit Transfer({from : from, to : to, value : amount});
     }
 }

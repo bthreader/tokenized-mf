@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 
-import {OrderList} from "../../src/order/nav/OrderList.sol";
+import {OrderList} from "../../src/order/OrderList.sol";
 
 contract ContractTest is Test {
     OrderList private buyList;
@@ -17,6 +17,7 @@ contract ContractTest is Test {
     function testOrderAdded() public {
         uint256 orderId;
         orderId = buyList.enqueue({addr : acc1, shares : 50});
+        assertTrue(orderId == 1, "incorrect index assigned");
         assertTrue(
             buyList._headId() == orderId,
             "Order not inserted at head"

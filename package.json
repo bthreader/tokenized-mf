@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "solhint": "^3.3.7"
+  },
+  "scripts": {
+    "lint": "solhint 'src/**/*.sol'",
+    "build": "forge build",
+    "test": "forge test"
+  }
+}

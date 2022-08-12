@@ -1,0 +1,9 @@
+{
+  "extends": "solhint:recommended",
+  "rules": {
+    "compiler-version": ["off","0"],
+    "max-line-length": ["error",79],
+    "reason-string": ["warn",{"maxLength":64}],
+    "func-visibility": ["error",{"ignoreConstructors":true}]
+  }
+}

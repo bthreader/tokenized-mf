@@ -2,8 +2,18 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 abstract contract AbstractVerify {
+    
+    /// -----------------------------
+    ///         State
+    /// -----------------------------
+    
     mapping(address => bool) private _verifiedAddresses;
     mapping(address => bool) private _verifiers;
+    mapping(address => uint256) public _balances;
+
+    /// -----------------------------
+    ///         Events
+    /// -----------------------------
 
     /**
      *  @dev Emitted when `admin` adds a `verifier` to the contract
@@ -37,13 +47,17 @@ abstract contract AbstractVerify {
         address indexed addr,
         address indexed verifier
     );
+
+    /// -----------------------------
+    ///         Modifiers
+    /// -----------------------------
     
     modifier onlyAdmin virtual;
     
     modifier onlyVerifier {
         require(
             _verifiers[msg.sender] == true,
-            "You are not a verifier"
+            "Verify: you are not a verifier"
         );
         _;
     }
@@ -51,66 +65,85 @@ abstract contract AbstractVerify {
     modifier onlyVerified {
         require(
             _verifiedAddresses[msg.sender] == true,
-            "You are not verified"
+            "Verify: you are not verified"
         );
         _;
     }
 
-    /// @param addr The address to add as a verifier
-    function addVerifier(address addr) public onlyAdmin {
+    /// -----------------------------
+    ///         External
+    /// -----------------------------    
+
+    /**
+     * @param addr The address to add as a verifier
+     */ 
+    function addVerifier(address addr) external onlyAdmin {
         require(
             addr != address(0),
-            "Zero address cannot be a verifier"
+            "Verify: zero address cannot be a verifier"
         );
         
         require(
             _verifiers[addr] != true,
-            "Address is already a verififer"
+            "Verify: address is already a verififer"
         );
 
         _verifiers[addr] = true;
         emit VerifierAdded({verifier : addr, admin : msg.sender});
     }
 
-    /// @param addr The address to remove from verifiers
-    function removeVerifier(address addr) public onlyAdmin {
+    /**
+     * @param addr The address to remove from verifiers
+     */
+    function removeVerifier(address addr) external onlyAdmin {
         require(
             _verifiers[addr] == true,
-            "Cannot remove an address that is not already a verifier"
+            "Verify: cannot remove non-verifier address"
         );
 
         _verifiers[addr] = false;
         emit VerifierRemoved({verifier : addr, admin : msg.sender});
     }
 
-    /// @param addr The address to verify
-    function addVerified(address addr) public onlyVerifier {
+    /**
+     * @param addr The address to verify
+     */
+    function addVerified(address addr) external onlyVerifier {
         require(
             addr != address(0),
-            "Cannot verify the zero address"
+            "Verify: cannot verify zero address"
         );
 
         require(
             _verifiedAddresses[addr] != true,
-            "Address is already verified"
+            "Verify: address already verified"
         );
             
         _verifiedAddresses[addr] = true;
         emit VerifiedAddressAdded({addr : addr, verifier : msg.sender});
     }
 
-    /// @param addr The address to remove from verified
-    function removeVerified(address addr) public onlyVerifier {
+    /**
+     * @param addr The address to remove from verified
+     */
+    function removeVerified(address addr) external onlyVerifier {
+        require(
+            _balances[addr] == 0,
+            "Verify: cannot remove an address that has tokens"
+        );
+        
         _verifiedAddresses[addr] = false;
         emit VerifiedAddressRemoved({addr : addr, verifier : msg.sender});
     }
-    
-    /// @dev Public view of verified addresses for auditing purposes
+
+    /// -----------------------------
+    ///         Public
+    /// -----------------------------
+
     function isVerified(address addr) public view returns (bool) {
         return _verifiedAddresses[addr];
     }
 
-    /// @dev Public view of verified addresses for auditing purposes
     function isVerifier(address addr) public view returns (bool) {
         return _verifiers[addr];
     }

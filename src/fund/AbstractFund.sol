@@ -2,8 +2,21 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import {ERC20} from "./ERC20.sol";
+import {OrderList} from "../order/OrderList.sol";
 
 abstract contract AbstractFund is ERC20 {
+    
+    /// -----------------------------
+    ///         State
+    /// -----------------------------
+    
+    OrderList internal _navBuyOrders;
+    OrderList internal _navSellOrders;
+
+    /// -----------------------------
+    ///         Modifiers
+    /// -----------------------------
+    
     modifier sharesNotZero(uint256 shares) {
         require(
             shares != 0,
@@ -11,18 +24,10 @@ abstract contract AbstractFund is ERC20 {
         );
         _;
     }
-    
-    /**
-     * @dev Computes the NAV (Wei)
-     */ 
-    function nav() public view virtual returns (uint) {}
 
-    /**
-     * @dev Computes the NAV per share (Wei)
-     */ 
-    function navPerShare() public view returns (uint) {
-        nav() / totalSupply();
-    }
+    /// -----------------------------
+    ///         External
+    /// -----------------------------
     
     /**
      * @dev Places a buy order of size `shares`, the price bought at will 
@@ -35,11 +40,9 @@ abstract contract AbstractFund is ERC20 {
      * executed later
      */
     function placeBuyNavOrder(uint256 shares, bool queueIfPartial)
-        public
+        external
         payable
-        virtual
-        onlyVerified
-        sharesNotZero(shares) {}
+        virtual;
     
     /**
      * @dev Places a sell order of size `shares`, the price sold at will 
@@ -52,15 +55,34 @@ abstract contract AbstractFund is ERC20 {
      * executed later
      */
     function placeSellNavOrder(uint256 shares, bool queueIfPartial) 
-        public 
-        virtual
-        onlyVerified 
-        sharesNotZero(shares) {}
+        external 
+        virtual;
 
+    /**
+     * @dev Moves shares from a users previous address to their new one
+     */
     function burnAndReissue(address oldAddr, address newAddr) 
-        public 
-        onlyAdmin 
+        external 
+        onlyAdmin
     {
-        transferFrom({from : oldAddr, to : newAddr, amount : _balances[oldAddr]});
+        require(isVerified(newAddr), "Fund: verify the new address first");
+        _balances[newAddr] = _balances[oldAddr];
+        _balances[oldAddr] = 0;
+    }
+
+    /// -----------------------------
+    ///         Public
+    /// -----------------------------
+    
+    /**
+     * @dev Computes the NAV (Wei)
+     */ 
+    function nav() public view virtual returns (uint256);
+
+    /**
+     * @dev Computes the NAV per share (Wei)
+     */ 
+    function navPerShare() public view returns (uint256) {
+        return nav() / totalSupply();
     }
 }

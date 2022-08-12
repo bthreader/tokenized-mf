@@ -4,6 +4,80 @@ pragma solidity >=0.7.0 <0.9.0;
 import {AbstractFund} from "./AbstractFund.sol";
 
 abstract contract FixedNavFund is AbstractFund {
+
+    /// -----------------------------
+    ///         Types
+    /// -----------------------------
+
+    enum OrderType{ NAVBUY, NAVSELL }
+    
+    struct OrderLog {
+        uint256 id;
+        OrderType orderType;
+    }
+
+    /// -----------------------------
+    ///         State
+    /// -----------------------------
+
+    mapping(address => OrderLog[]) private _outstandingOrders;
+
+    /// -----------------------------
+    ///         External
+    /// -----------------------------
+    
+    /**
+     * @dev See {AbstractFund-nav}.
+     */
+    function placeBuyNavOrder(uint256 shares, bool queueIfPartial)
+        external
+        payable
+        override
+        onlyVerified 
+    {
+        uint256 remainingShares = shares;
+
+        if (queueIfPartial) {
+            uint256 orderId = _navBuyOrders.enqueue({
+                addr : msg.sender,
+                shares : remainingShares
+            });
+
+            _outstandingOrders[msg.sender].push(OrderLog({
+                id : orderId,
+                orderType : OrderType.NAVBUY
+            }));
+        }
+    }
+
+    /// -----------------------------
+    ///         Public
+    /// -----------------------------
+    
+    /**
+     * @dev See {AbstractFund-nav}.
+     */
+    function nav() public pure override returns (uint256) {
+        return 100;
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     // function price() public pure override returns (uint) {
     //     return 10;
     // }
