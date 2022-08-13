@@ -7,8 +7,8 @@ contract Election {
     ///         State
     /// -----------------------------
     
-    uint256 public votes;
-    mapping(address => bool) public hasVoted;
+    uint256 public _votes;
+    mapping(address => bool) public _hasVoted;
 
     /// -----------------------------
     ///         External
@@ -19,12 +19,12 @@ contract Election {
      */
     function vote(address voterAddr) external {
         require(
-            hasVoted[voterAddr] == false,
+            _hasVoted[voterAddr] == false,
             "Address has already voted"
         );
         
-        votes += 1;
-        hasVoted[voterAddr] = true;
+        _votes += 1;
+        _hasVoted[voterAddr] = true;
     }
 
     /**
@@ -32,11 +32,11 @@ contract Election {
      */ 
     function removeVote(address voterAddr) external {
         require(
-            hasVoted[voterAddr] == true,
+            _hasVoted[voterAddr] == true,
             "Address has not voted"
         );
         
-        votes -= 1;
-        hasVoted[voterAddr] = false;
+        _votes -= 1;
+        _hasVoted[voterAddr] = false;
     }
 }

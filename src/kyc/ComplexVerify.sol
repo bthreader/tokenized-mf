@@ -10,9 +10,9 @@ contract ComplexVerify is AbstractVerify {
     ///         State
     /// -----------------------------
     
-    uint256 internal _totalAdmins;
-    mapping(address => bool) internal _admins;
-    mapping(address => Election) internal _elections;
+    uint256 private _totalAdmins;
+    mapping(address => bool) private _admins;
+    mapping(address => Election) private _elections;
     address[] private _candidates;
 
     constructor() {
@@ -27,15 +27,24 @@ contract ComplexVerify is AbstractVerify {
     /**
      * @dev Emitted when admin(s) add an `admin` to the contract
      */
-    event AdminAdded(
-        address indexed admin
-    );
+    event AdminAdded(address indexed admin);
 
     /**
      * @dev Emitted when admin(s) remove an `admin` from the contract
      */
-    event AdminRemoved(
-        address indexed admin
+    event AdminRemoved(address indexed admin);
+
+    /**
+     * @dev Emitted when admin(s) remove an `admin` from the contract
+     */
+    event VoteToAddPlaced(address indexed voter, address indexed candidate);
+
+    /**
+     * @dev Emitted when admin(s) remove an `admin` from the contract
+     */
+    event VoteToRemovePlaced(
+        address indexed voter,
+        address indexed candidate
     );
 
     /// -----------------------------
@@ -45,7 +54,7 @@ contract ComplexVerify is AbstractVerify {
     modifier onlyAdmin override {
         require(
             _admins[msg.sender] == true,
-            "You are not an admin"
+            "Verify: you are not an admin"
         );
         _;
     }
@@ -57,13 +66,14 @@ contract ComplexVerify is AbstractVerify {
     /**
      * @param candidateAddr The non-admin address we want to vote to add
      */
-    function voteToAdd(address candidateAddr) public onlyAdmin {
+    function voteToAdd(address candidateAddr) external onlyAdmin {
         require(
             _admins[candidateAddr] != true,
-            "This address has already been added as an admin"
+            "Verify: this address has already been added as an admin"
         );
         
         vote({candidateAddr: candidateAddr, voterAddr: msg.sender});
+        emit VoteToAddPlaced({voter : msg.sender, candidate: candidateAddr});
 
         if (majorityAchieved(_elections[candidateAddr])) { 
             _admins[candidateAddr] = true;
@@ -76,13 +86,17 @@ contract ComplexVerify is AbstractVerify {
     /**
      * @param candidateAddr The admin address we want to vote to remove
      */
-    function voteToRemove(address candidateAddr) public onlyAdmin {
+    function voteToRemove(address candidateAddr) external onlyAdmin {
         require(
             _admins[candidateAddr] == true,
-            "Can't remove an address which is not an admin"
+            "Verify: can't remove an address which is not an admin"
         );
 
         vote({candidateAddr: candidateAddr, voterAddr: msg.sender});
+        emit VoteToRemovePlaced({
+            voter : msg.sender,
+            candidate: candidateAddr
+        });
 
         if (majorityAchieved(_elections[candidateAddr])) { 
             _admins[candidateAddr] = false;
@@ -91,6 +105,42 @@ contract ComplexVerify is AbstractVerify {
             removeVoterFromElections(candidateAddr);
             emit AdminRemoved(candidateAddr);
         }
+    }
+
+    function totalAdmins() 
+        external
+        view 
+        onlyAdmin 
+        returns (uint256) 
+    {
+        return _totalAdmins;
+    }
+    
+    function isAdmin(address addr) 
+        external
+        view 
+        onlyAdmin 
+        returns (bool) 
+    {
+        return _admins[addr];
+    }
+
+    function getElection(address addr)
+        external
+        view
+        onlyAdmin
+        returns (Election)
+    {
+        return _elections[addr];
+    }
+
+    function getCandidates() 
+        external
+        view
+        onlyAdmin
+        returns (address[] memory)
+    {
+        return _candidates;
     }
     
     /// -----------------------------
@@ -134,7 +184,7 @@ contract ComplexVerify is AbstractVerify {
      * @param election The election we're comparing votes with #admins
      */
     function majorityAchieved(Election election) private view returns (bool) {
-        if (election.votes() > (_totalAdmins / 2)) {
+        if (election._votes() > (_totalAdmins / 2)) {
             return true;
         }
         return false;
@@ -161,7 +211,7 @@ contract ComplexVerify is AbstractVerify {
     function removeVoterFromElections(address voterToRemove) private { 
         uint256 i = 0;
         for (i; i<_candidates.length; i++) {
-            if (_elections[_candidates[i]].hasVoted(voterToRemove) == true) {
+            if (_elections[_candidates[i]]._hasVoted(voterToRemove) == true) {
                 _elections[_candidates[i]].removeVote(voterToRemove);
             }
         }

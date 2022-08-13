@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 import {OrderList} from "../../src/order/OrderList.sol";
 
-contract ContractTest is Test {
+contract OrderListTest is Test {
     OrderList private buyList;
     address private acc1 = address(0x1);
     address private acc2 = address(0x2);

@@ -9,7 +9,7 @@ abstract contract AbstractVerify {
     
     mapping(address => bool) private _verifiedAddresses;
     mapping(address => bool) private _verifiers;
-    mapping(address => uint256) public _balances;
+    mapping(address => uint256) internal _balances;
 
     /// -----------------------------
     ///         Events
