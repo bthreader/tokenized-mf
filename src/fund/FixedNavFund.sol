@@ -3,50 +3,223 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import {AbstractFund} from "./AbstractFund.sol";
 
-abstract contract FixedNavFund is AbstractFund {
-
-    /// -----------------------------
-    ///         Types
-    /// -----------------------------
-
-    enum OrderType{ NAVBUY, NAVSELL }
+contract FixedNavFund is AbstractFund {
     
-    struct OrderLog {
-        uint256 id;
-        OrderType orderType;
-    }
-
-    /// -----------------------------
-    ///         State
-    /// -----------------------------
-
-    mapping(address => OrderLog[]) private _outstandingOrders;
-
     /// -----------------------------
     ///         External
     /// -----------------------------
     
     /**
-     * @dev See {AbstractFund-nav}.
+     * @dev See {AbstractFund-placeBuyNavOrder}.
      */
     function placeBuyNavOrder(uint256 shares, bool queueIfPartial)
         external
         payable
         override
-        onlyVerified 
+        onlyVerified
+        returns (bool success, uint256 orderId)
     {
-        uint256 remainingShares = shares;
+        uint256 price = navPerShare();
+    
+        //
+        // Prep to traverse sell queue
+        //
+        
+        // Define
+        address candidateAddr;
+        uint256 candidateShares;
+        uint256 sharesToExecute = min(shares, (msg.value / price));
+        uint256 remainingSharesToExecute = sharesToExecute;
+        uint256 head = _navSellOrders._headId();
 
-        if (queueIfPartial) {
-            uint256 orderId = _navBuyOrders.enqueue({
-                addr : msg.sender,
-                shares : remainingShares
-            });
+        //
+        // Traverse sell queue
+        //
 
-            _outstandingOrders[msg.sender].push(OrderLog({
-                id : orderId,
-                orderType : OrderType.NAVBUY
-            }));
+        /**
+         * @dev While there are
+         * -> outstanding shares in the order which the buyer can afford 
+         * -> sellers to sell them
+         */
+        while ((remainingSharesToExecute > 0) && (head != 0)) {
+            (candidateAddr, candidateShares)
+                = _navSellOrders.getOrderDetails(head);
+            
+            // Fully execute buy and partially execute sell
+            if (candidateShares > remainingSharesToExecute) {
+                // Send the money and add shares
+                payable(candidateAddr).transfer(
+                    remainingSharesToExecute * price
+                );
+
+                _transferFromCustody({
+                    from : candidateAddr,
+                    to : msg.sender,
+                    amount : remainingSharesToExecute
+                });
+
+                // Log
+                emit QueuedOrderActioned({
+                    buyer : msg.sender,
+                    seller : candidateAddr,
+                    shares : remainingSharesToExecute,
+                    price : price,
+                    partiallyExecuted : true,
+                    queuedOrderId : head
+                });
+
+                remainingSharesToExecute = 0;
+                break;
+            }
+            
+            // Fully execute sell and potentially buy
+            else {
+                // Send the money and add shares
+                payable(candidateAddr).transfer(candidateShares * price);
+
+                _transferFromCustody({
+                    from : candidateAddr,
+                    to : msg.sender,
+                    amount : candidateShares
+                });
+
+                // Log
+                emit QueuedOrderActioned({
+                    buyer : msg.sender,
+                    seller : candidateAddr,
+                    shares : candidateShares,
+                    price : price,
+                    partiallyExecuted : false,
+                    queuedOrderId : head
+                });
+
+                if (candidateShares == remainingSharesToExecute) {
+                    remainingSharesToExecute = 0;
+                    break;
+                }
+
+                else {
+                    unchecked{
+                        remainingSharesToExecute -= candidateShares;
+                    }
+
+                    _navSellOrders.dequeue();
+                    head = _navSellOrders._headId();
+                    continue;
+                }  
+            }
+        }
+
+        //
+        // Workout where that leaves us
+        //
+
+        // Executed what we could
+        if (remainingSharesToExecute == 0) {
+            // Full order executed - may need a refund
+            if (sharesToExecute == shares) {
+                payable(msg.sender).transfer(msg.value - (price * shares));
+                return (true, 0); 
+            }
+
+            // Order partially executed but we executed what we could
+            else if (sharesToExecute < shares) {
+                if (queueIfPartial) {
+                    // Put any remaining cash in brokerage account
+                    _brokerageAccounts[msg.sender] 
+                        += msg.value - (sharesToExecute * price);
+
+                    // Queue the remaining shares
+                    orderId = _navBuyOrders.enqueue({
+                        addr : msg.sender,
+                        shares : (shares - sharesToExecute)
+                    });
+
+                    return (false, orderId);
+                }                
+                else {
+                    return (false, 0);
+                }
+            }
+        }
+
+        else {
+            uint256 boughtShares = sharesToExecute - remainingSharesToExecute;
+            
+            if (queueIfPartial) {
+                // Put remaining cash in the broker account
+                unchecked {
+                    _brokerageAccounts[msg.sender] += 
+                        (msg.value - (boughtShares * price));
+                }
+
+                // Work out total outstanding
+                uint256 outstanding = 
+                    remainingSharesToExecute + (shares - sharesToExecute);
+
+                // Queue the outstanding
+                orderId = _navBuyOrders.enqueue({
+                    addr : msg.sender,
+                    shares : outstanding
+                });
+
+                return (false, orderId);
+            }
+
+            else {
+                payable(msg.sender).transfer(
+                    msg.value - (boughtShares * price)
+                );
+                return (false, 0);
+            }
+        }
+    }
+
+    /**
+     * @dev See {AbstractFund-placeSellNavOrder}.
+     */
+    function placeSellNavOrder(uint256 shares, bool queueIfPartial) 
+        external 
+        override
+        onlyVerified
+        returns (bool success, uint256 orderId) 
+    {
+        // Complicated part is ensuring buy order placer has sufficient funds in brokerage account
+        return (true, 0);
+    }
+
+    function closeNavOrders()
+        external
+        override
+        onlyAdmin
+    {
+        uint256 price = navPerShare();
+        address clientAddr;
+        uint256 clientShares;
+
+        // Close the buy orders
+        if (_navBuyOrders._headId() != 0) {
+            while (_navBuyOrders._headId() != 0) {
+                continue;
+            }
+        }
+
+        else if (_navSellOrders._headId() != 0) {
+            uint256 head = _navSellOrders._headId();
+            while (head != 0) {
+                (clientAddr, clientShares)
+                    = _navSellOrders.getOrderDetails(head);
+
+                payable(clientAddr).transfer(price * clientShares);
+                
+                unchecked {
+                    _custodyAccounts[clientAddr] -= clientShares;
+                }
+            }
+        }
+
+        else {
+            return;
         }
     }
 
@@ -60,144 +233,23 @@ abstract contract FixedNavFund is AbstractFund {
     function nav() public pure override returns (uint256) {
         return 100;
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    // function price() public pure override returns (uint) {
-    //     return 10;
-    // }
-    
-    // function placeBuyNavOrder(uint256 shares) 
-    //     public
-    //     payable
-    //     override
-    //     onlyVerified 
-    //     sharesNotZero(shares) 
-    // {}
-    
-    /**
-     * @dev Performs order matching
-     *
-     * @param sharesToMatch Size of the order
-     *
-     * @return MatchingReport Record of shares bought or sold and who is owed what 
-     * in terms of shares (shares or their equivalent in cash)
-     */
-    //function matchOrder(uint256 sharesToMatch) public returns (MatchingReport) {        
-        // Match[] memory matches;
-        // matches = new Match[]();
-        // MatchingReport report;
-        
-        // // No orders in the queue
-        // if (_headId == 0) {
-        //     report = new MatchingReport({matchedShares : 0, matches : matches});
-        //     return report;
-        // }
-        
-        // // Temporary pointers for traversing queue
-        // Match result;
-        // uint256 matchedShares;
-        // uint256 i;
-        // uint256 candidateOrderId;
 
-        // // Pointer for our report array
-        // i = 0;
+    /// -----------------------------
+    ///         Internal
+    /// -----------------------------
 
-        // // Pointer for the LL
-        // candidateOrderId = _headId;
+    function min(uint256 a, uint256 b) internal pure returns (uint256) {
+        if (a > b) {return a;}
+        return b;
+    }
 
-        // while (sharesToMatch > 0) {
-        //     // No more orders to evaluate
-        //     if (candidateOrderId == 0) {break;}
- 
-        //     // Handle the order
-        //     result = handleOrder({
-        //         queuedOrder : _orders[candidateOrderId],
-        //         sharesToMatch : sharesToMatch
-        //     });
-
-        //     // Update pointers
-        //     matches[i] = result;
-        //     matchedShares += result._shares();
-        //     sharesToMatch -= matchedShares;
-
-        //     // Check if order fulfilled
-        //     if (sharesToMatch == 0) {break;}
-            
-        //     // Next match
-        //     candidateOrderId = _orders[candidateOrderId].nextId;
-        //     i += 1;
-        // }
-        
-        // report = new MatchingReport({matchedShares : matchedShares, matches : matches});
-        
-        // return report;
-    //}
-
-    /**
-     * @dev Evaluates an existing order `queuedOrder` against the currently executing  
-     * order which at maximum would like to transact `sharesToMatch`
-     */
-    // function handleOrder(NavOrder memory queuedOrder, uint256 sharesToMatch) 
-    //     public 
-    //     returns (Match) 
-    // {
-    // //     uint256 matchedShares;
-    //     Match result;
-    //     address counterparty = queuedOrder.addr;
-
-    //     if (queuedOrder.shares <= sharesToMatch) {
-    //         // Match the full order
-    //         matchedShares = queuedOrder.shares;
-            
-    //         // Delete the order
-    //         deleteOrder(queuedOrder.id);
-    //     }
-
-    //     else {
-    //         // Match part of the order
-    //         matchedShares = sharesToMatch;
-
-    //         // Adjust the order
-    //         modifyOrder({id : queuedOrder.id, add : false, shares : sharesToMatch});
-    //     }
-
-    //     result = new Match({
-    //         counterparty : counterparty,
-    //         shares : matchedShares
-    //     });
-
-    //     return (result);
-    // }
-    // }
-
-    // function placeSellNavOrder(uint256 shares) 
-    //     public 
-    //     override
-    //     sharesNotZero(shares) 
-    // {
-    //     // require(
-    //     //     balances[msg.sender] >= shares,
-    //     //     "Insufficient shares to sell, transaction rejected"
-    //     // );
-    //     // payable(msg.sender).transfer(price() * shares);
-
-    //     // balances[msg.sender] -= shares;
-    //     // totalShares -= shares;
-    // }
+    function _transferFromCustody(address from, address to, uint256 amount) 
+        internal 
+    {
+        unchecked {
+            _custodyAccounts[from] -= amount;
+            _balances[to] += amount;
+        }
+        emit Transfer({from : from, to : to, value : amount});
+    }
 }

@@ -2,18 +2,16 @@
 pragma solidity ^0.8.13;
 
 import {Test} from "forge-std/Test.sol";
+import {GenericTest} from "../GenericTest.sol";
 
 import {ComplexVerify} from "../../src/kyc/ComplexVerify.sol";
 
-contract ComplexVerifyTest is Test {
+contract ComplexVerifyTest is Test, GenericTest {
     
     /// -----------------------------
     ///         State
     /// -----------------------------
     
-    address private acc1 = address(0x1);
-    address private acc2 = address(0x2);
-    address private acc3 = address(0x3);
     ComplexVerify private verificationContract;
 
     /// -----------------------------

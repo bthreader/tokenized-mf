@@ -12,7 +12,7 @@ import {AbstractOrderList} from "./AbstractOrderList.sol";
  * Used for NAV based orders where there is no bid-ask associated with the
  * order. 
  */ 
-contract OrderList is AbstractOrderList {
+contract NavOrderList is AbstractOrderList {
     
     /// -----------------------------
     ///         External
@@ -70,7 +70,7 @@ contract OrderList is AbstractOrderList {
         address addr;
         uint256 newShares;
 
-        (addr, currentShares) = decode(_orders[id].data);
+        (addr, currentShares) = getOrderDetails(id);
         
         if (add) {
             newShares = currentShares + shares;
@@ -91,8 +91,18 @@ contract OrderList is AbstractOrderList {
     ///         Public
     /// -----------------------------
 
+    function getOrderDetails(uint256 id)
+        public view returns (address addr, uint256 shares) 
+    {
+        return decode(_orders[id].data);
+    }
+
+    /// -----------------------------
+    ///         Internal
+    /// -----------------------------
+
     function decode(bytes memory data) 
-        public 
+        internal 
         pure 
         returns (address addr, uint256 shares) 
     {

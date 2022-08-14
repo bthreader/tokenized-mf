@@ -2,7 +2,7 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import {ERC20} from "./ERC20.sol";
-import {OrderList} from "../order/OrderList.sol";
+import {NavOrderList} from "../order/NavOrderList.sol";
 
 abstract contract AbstractFund is ERC20 {
     
@@ -10,8 +10,33 @@ abstract contract AbstractFund is ERC20 {
     ///         State
     /// -----------------------------
     
-    OrderList internal _navBuyOrders;
-    OrderList internal _navSellOrders;
+    NavOrderList internal _navBuyOrders;
+    NavOrderList internal _navSellOrders;
+    mapping(address => uint256) internal _brokerageAccounts;
+    mapping(address => uint256) internal _custodyAccounts;
+
+    constructor() {
+        _navBuyOrders = new NavOrderList();
+        _navSellOrders = new NavOrderList();
+    }
+
+    /// -----------------------------
+    ///         Events
+    /// -----------------------------
+
+    event OrderQueued(
+        address indexed addr,
+        uint256 id
+    );
+
+    event QueuedOrderActioned(
+        address indexed buyer, 
+        address indexed seller, 
+        uint256 shares,
+        uint256 price,
+        bool partiallyExecuted,
+        uint256 queuedOrderId
+    );
 
     /// -----------------------------
     ///         Modifiers
@@ -35,6 +60,22 @@ abstract contract AbstractFund is ERC20 {
      * isn't fully executed, the client has the option of adding the order
      * to a queue. This is done using the a flag.
      * 
+     * SThe user should send the maximum amount they would be willing to pay 
+     * for the shares. This gives some flexibility, which is important given 
+     * NAV is dynamic.
+     *
+     * -> If the money is more than sufficient, the algo will attempt to 
+     *    execute and if successful, it will immediately extra refund the 
+     *    money. If it cannot:
+     *    -> queueIfPartail = true; move remaining funds to a brokerage 
+     *       account, queue order of: shares - shares executed.
+     *    -> queueIfPartial = false; refund extra money.
+     *
+     * -> If the money is insufficient
+     *    -> queueIfPartail = true; move remaining funds to a brokerage 
+     *       account, queue order of: shares - shares executed.
+     *    -> queueIfPartial = false; refund extra money.
+     * 
      * @param shares The number of shares to buy
      * @param queueIfPartial If true adds non-bought shares to a queue to be 
      * executed later
@@ -42,7 +83,8 @@ abstract contract AbstractFund is ERC20 {
     function placeBuyNavOrder(uint256 shares, bool queueIfPartial)
         external
         payable
-        virtual;
+        virtual
+        returns (bool success, uint256 orderId);
     
     /**
      * @dev Places a sell order of size `shares`, the price sold at will 
@@ -56,19 +98,20 @@ abstract contract AbstractFund is ERC20 {
      */
     function placeSellNavOrder(uint256 shares, bool queueIfPartial) 
         external 
-        virtual;
+        virtual
+        returns (bool success, uint256 orderId);
 
     /**
-     * @dev Moves shares from a users previous address to their new one
+     * @dev Finds where the mismatch is in liquidity, then executes the orders,
+     * 
+     * If there are buy orders outstanding - take money from brokerage account
+     * and mint shares.
+     *
+     * If there are sell orders outstanding - send money and burn shares.
      */
-    function burnAndReissue(address oldAddr, address newAddr) 
-        external 
-        onlyAdmin
-    {
-        require(isVerified(newAddr), "Fund: verify the new address first");
-        _balances[newAddr] = _balances[oldAddr];
-        _balances[oldAddr] = 0;
-    }
+    function closeNavOrders()
+        external
+        virtual;
 
     /// -----------------------------
     ///         Public
@@ -84,5 +127,15 @@ abstract contract AbstractFund is ERC20 {
      */ 
     function navPerShare() public view returns (uint256) {
         return nav() / totalSupply();
+    }
+
+    /// -----------------------------
+    ///         Internal
+    /// -----------------------------
+
+    function _burnFromCustodyAccount(address addr, uint256 shares) internal {
+        _custodyAccounts[addr] -= shares;
+        _totalShares -= shares;
+        emit Transfer(addr, address(0), shares);
     }
 }

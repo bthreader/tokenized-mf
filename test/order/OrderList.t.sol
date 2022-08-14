@@ -2,16 +2,15 @@
 pragma solidity ^0.8.13;
 
 import {Test} from "forge-std/Test.sol";
+import {GenericTest} from "../GenericTest.sol";
 
-import {OrderList} from "../../src/order/OrderList.sol";
+import {NavOrderList} from "../../src/order/NavOrderList.sol";
 
-contract OrderListTest is Test {
-    OrderList private buyList;
-    address private acc1 = address(0x1);
-    address private acc2 = address(0x2);
+contract OrderListTest is Test, GenericTest {
+    NavOrderList private buyList;
 
     function setUp() public {
-        buyList = new OrderList();
+        buyList = new NavOrderList();
     }
 
     function testOrderAdded() public {

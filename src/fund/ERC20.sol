@@ -138,6 +138,25 @@ contract ERC20 is ComplexVerify, IERC20 {
         return true;
     }
 
+     /**
+     * @dev Moves shares from a users previous address to their new one
+     */
+    function burnAndReissue(address oldAddr, address newAddr) 
+        external 
+        onlyAdmin
+    {
+        require(isVerified(oldAddr), "Fund: old address isn't verified");
+        require(
+            isVerified(newAddr),
+            "Fund: verify the new address first"
+        );        
+        
+        uint256 oldBalance = _balances[oldAddr];
+
+        _burn(oldAddr, oldBalance);
+        _mint(newAddr, oldBalance);
+    }
+
     /// ----------------------------
     ///         Public
     /// ----------------------------
@@ -204,5 +223,28 @@ contract ERC20 is ComplexVerify, IERC20 {
             _balances[to] += amount;
         }
         emit Transfer({from : from, to : to, value : amount});
+    }
+
+    /**
+     * @dev Sets `shares` and assigns them to `addr`
+     */
+    function _mint(address addr, uint256 shares) internal {
+        _balances[addr] += shares;
+        _totalShares += shares;
+        emit Transfer(address(0), addr, shares);
+    }
+
+    /**
+     * @dev Removes `shares` from the balance of `addr` and takes them out of
+     * circulation.
+     */
+    function _burn(address addr, uint256 shares) internal {
+        require(
+            _balances[addr] >= shares,
+            "ERC20: burn amount exceeds balance"
+        );
+        _balances[addr] -= shares;
+        _totalShares -= shares;
+        emit Transfer(addr, address(0), shares);
     }
 }
