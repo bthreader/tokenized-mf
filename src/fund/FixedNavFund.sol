@@ -318,7 +318,8 @@ contract FixedNavFund is AbstractFund {
                         clientShares
                     );
                     unchecked {
-                        _brokerageAccounts[clientAddr] -= (executableShares * price);
+                        _brokerageAccounts[clientAddr] 
+                            -= (executableShares * price);
                     }
 
                     _mint({addr : clientAddr, amount : executableShares});

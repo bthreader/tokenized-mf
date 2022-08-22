@@ -1,27 +1,30 @@
 on: [push]
 
-name: test
+name: CI
 
 jobs:
-  check:
-    name: Foundry project
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      - uses: actions/setup-node@v3
+  name: Test
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
 
-      - name: Install Dependencies
-        run: npm install
+    - name: Run tests
+      run: forge test -vvv
 
-      - name: Run tests
-        run: npm run test
-      
-      - name: Run lint
-        run: npm run lint
+  name: Lint
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/setup-node@v3
+
+    - name: Install Dependencies
+      run: npm install
+
+    - name: Run lint
+      run: npm run lint
