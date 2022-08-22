@@ -3,28 +3,30 @@ on: [push]
 name: CI
 
 jobs:
-  name: Test
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: recursive
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
-    - name: Install Foundry
-      uses: foundry-rs/foundry-toolchain@v1
-      with:
-        version: nightly
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
 
-    - name: Run tests
-      run: forge test -vvv
+      - name: Run tests
+        run: forge test -vvv
 
-  name: Lint
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/setup-node@v3
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v3
 
-    - name: Install Dependencies
-      run: npm install
+      - name: Install Dependencies
+        run: npm install
 
-    - name: Run lint
-      run: npm run lint
+      - name: Run lint
+        run: npm run lint
