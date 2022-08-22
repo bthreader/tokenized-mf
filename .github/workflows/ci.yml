@@ -23,10 +23,11 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
 
       - name: Install Dependencies
-        run: cd .. && npm install
+        run: npm install
 
       - name: Run lint
         run: npm run lint
