@@ -88,14 +88,18 @@ abstract contract AbstractOrderList {
         delete _orders[id];
     }
 
+    function next(uint256 id) external view returns (uint256) {
+        return _orders[id].nextId;
+    }
+
     /// -----------------------------
     ///         Internal
     /// -----------------------------
 
     /**
-     * @dev Modify the data of a queued order, setting data = `data
+     * @dev Modify the data of a queued order, setting data = `data`
      */
-    function changeData(uint256 id, bytes memory newData) internal {
+    function _changeData(uint256 id, bytes memory newData) internal {
         _orders[id].data = newData;
     }
 }

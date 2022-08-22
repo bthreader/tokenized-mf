@@ -157,21 +157,17 @@ contract ERC20 is ComplexVerify, IERC20 {
         _mint(newAddr, oldBalance);
     }
 
-    /// ----------------------------
-    ///         Public
-    /// ----------------------------
-
     /**
      * @dev Returns the amount of tokens in existence
      */
-    function totalSupply() public view returns (uint256) {
+    function totalSupply() external view returns (uint256) {
         return _totalShares;
     }
 
     /**
      * @dev Returns the amount of tokens owned by `account`
      */
-    function balanceOf(address account) public view returns (uint256) {
+    function balanceOf(address account) external view returns (uint256) {
         return _balances[account];
     }
 
@@ -183,13 +179,12 @@ contract ERC20 is ComplexVerify, IERC20 {
      * This value changes when {approve} or {transferFrom} are called.
      */
     function allowance(address owner, address spender) 
-        public 
+        external 
         view
         returns (uint256) 
     {
         return _allowances[owner][spender];
     }
-
 
     /// -----------------------------
     ///         Internal
@@ -214,8 +209,7 @@ contract ERC20 is ComplexVerify, IERC20 {
      * @dev Sets `amount` as the allowance of `spender` over the `owner` s 
      * tokens.
      *
-     *
-     * Emits an {Transfer} event.
+     * Emits a {Transfer} event.
      */
     function _transfer(address from, address to, uint256 amount) internal {
         unchecked {
@@ -226,25 +220,29 @@ contract ERC20 is ComplexVerify, IERC20 {
     }
 
     /**
-     * @dev Sets `shares` and assigns them to `addr`
+     * @dev Mints shares and assigns them to `addr`
+     *
+     * Emits a {Transfer} event.
      */
-    function _mint(address addr, uint256 shares) internal {
-        _balances[addr] += shares;
-        _totalShares += shares;
-        emit Transfer(address(0), addr, shares);
+    function _mint(address addr, uint256 amount) internal {
+        _balances[addr] += amount;
+        _totalShares += amount;
+        emit Transfer(address(0), addr, amount);
     }
 
     /**
-     * @dev Removes `shares` from the balance of `addr` and takes them out of
+     * @dev Removes `amount` from the balance of `addr` and takes them out of
      * circulation.
+     *
+     * Emits a {Transfer} event.
      */
-    function _burn(address addr, uint256 shares) internal {
+    function _burn(address addr, uint256 amount) internal {
         require(
-            _balances[addr] >= shares,
+            _balances[addr] >= amount,
             "ERC20: burn amount exceeds balance"
         );
-        _balances[addr] -= shares;
-        _totalShares -= shares;
-        emit Transfer(addr, address(0), shares);
+        _balances[addr] -= amount;
+        _totalShares -= amount;
+        emit Transfer(addr, address(0), amount);
     }
 }

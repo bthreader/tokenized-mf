@@ -72,13 +72,13 @@ contract ComplexVerify is AbstractVerify {
             "Verify: this address has already been added as an admin"
         );
         
-        vote({candidateAddr: candidateAddr, voterAddr: msg.sender});
+        _vote({candidateAddr: candidateAddr, voterAddr: msg.sender});
         emit VoteToAddPlaced({voter : msg.sender, candidate: candidateAddr});
 
-        if (majorityAchieved(_elections[candidateAddr])) { 
+        if (_majorityAchieved(_elections[candidateAddr])) { 
             _admins[candidateAddr] = true;
             _totalAdmins += 1;
-            deleteElection(candidateAddr);
+            _deleteElection(candidateAddr);
             emit AdminAdded(candidateAddr);
         }
     }
@@ -92,17 +92,17 @@ contract ComplexVerify is AbstractVerify {
             "Verify: can't remove an address which is not an admin"
         );
 
-        vote({candidateAddr: candidateAddr, voterAddr: msg.sender});
+        _vote({candidateAddr: candidateAddr, voterAddr: msg.sender});
         emit VoteToRemovePlaced({
             voter : msg.sender,
             candidate: candidateAddr
         });
 
-        if (majorityAchieved(_elections[candidateAddr])) { 
+        if (_majorityAchieved(_elections[candidateAddr])) { 
             _admins[candidateAddr] = false;
             _totalAdmins -= 1;
-            deleteElection(candidateAddr);
-            removeVoterFromElections(candidateAddr);
+            _deleteElection(candidateAddr);
+            _removeVoterFromElections(candidateAddr);
             emit AdminRemoved(candidateAddr);
         }
     }
@@ -151,29 +151,22 @@ contract ComplexVerify is AbstractVerify {
      * @param candidateAddr The election candidate being voted on
      * @param voterAddr The address voting on the candidates election
      */
-    function vote(address candidateAddr, address voterAddr) private {
+    function _vote(address candidateAddr, address voterAddr) private {
         if (address(_elections[candidateAddr]) == address(0x0)) {
-            newElectionWithVote({
-                candidateAddr: candidateAddr,
-                voterAddr: voterAddr
-            });
+            _newElection(candidateAddr);
         }
 
-        else {
-            _elections[candidateAddr].vote(voterAddr);
-        }
+        _elections[candidateAddr].vote(voterAddr);
     }
 
     /**
      * @param candidateAddr The candidate we're creating an election for
-     * @param voterAddr The address voting on the candidates election
      */
-    function newElectionWithVote(address candidateAddr, address voterAddr)
+    function _newElection(address candidateAddr)
         private
     {
         // Create new election
         Election election = new Election();
-        election.vote(voterAddr);
         
         // Save state
         _elections[candidateAddr] = election;
@@ -183,7 +176,7 @@ contract ComplexVerify is AbstractVerify {
     /**
      * @param election The election we're comparing votes with #admins
      */
-    function majorityAchieved(Election election) private view returns (bool) {
+    function _majorityAchieved(Election election) private view returns (bool) {
         if (election._votes() > (_totalAdmins / 2)) {
             return true;
         }
@@ -193,7 +186,7 @@ contract ComplexVerify is AbstractVerify {
     /**
      * @param candidateAddr The candidate whose election we want to delete
      */ 
-    function deleteElection(address candidateAddr) private {
+    function _deleteElection(address candidateAddr) private {
         delete _elections[candidateAddr];
         
         uint256 i = 0;
@@ -208,7 +201,7 @@ contract ComplexVerify is AbstractVerify {
     /**
      * @param voterToRemove The address whose votes we want to remove
      */ 
-    function removeVoterFromElections(address voterToRemove) private { 
+    function _removeVoterFromElections(address voterToRemove) private { 
         uint256 i = 0;
         for (i; i<_candidates.length; i++) {
             if (_elections[_candidates[i]]._hasVoted(voterToRemove) == true) {

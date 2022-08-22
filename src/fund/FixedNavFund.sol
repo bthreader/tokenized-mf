@@ -6,6 +6,15 @@ import {AbstractFund} from "./AbstractFund.sol";
 contract FixedNavFund is AbstractFund {
     
     /// -----------------------------
+    ///         State
+    /// -----------------------------
+
+    constructor () {
+        _balances[msg.sender] = 1;
+        _totalShares += 1;
+    }
+
+    /// -----------------------------
     ///         External
     /// -----------------------------
     
@@ -28,7 +37,7 @@ contract FixedNavFund is AbstractFund {
         // Define
         address candidateAddr;
         uint256 candidateShares;
-        uint256 sharesToExecute = min(shares, (msg.value / price));
+        uint256 sharesToExecute = _min(shares, (msg.value / price));
         uint256 remainingSharesToExecute = sharesToExecute;
         uint256 head = _navSellOrders._headId();
 
@@ -184,7 +193,104 @@ contract FixedNavFund is AbstractFund {
         onlyVerified
         returns (bool success, uint256 orderId) 
     {
-        // Complicated part is ensuring buy order placer has sufficient funds in brokerage account
+        require(
+            _balances[msg.sender] >= shares,
+            "Fund: insufficient balance to place sell order"
+        );
+
+        uint256 price = navPerShare();
+    
+        //
+        // Prep to traverse buy queue
+        //
+        
+        // Define
+        address candidateAddr;
+        uint256 candidateShares;
+        uint256 remainingSharesToExecute = shares;
+        uint256 head = _navSellOrders._headId();
+        uint256 executableShares;
+        uint256 amountToTransfer;
+
+        //
+        // Traverse buy queue
+        //
+
+        /**
+         * @dev While there are
+         * -> outstanding shares in the order 
+         * -> buyers to buy them
+         */
+        while ((remainingSharesToExecute > 0) && (head != 0)) {
+            (candidateAddr, candidateShares)
+                = _navBuyOrders.getOrderDetails(head);
+
+            // Cash the candidate has
+            uint256 balance = _brokerageAccounts[candidateAddr];
+
+            // Cash the candidate needs                     
+            uint256 requiredBalance = price * candidateShares;
+
+            //
+            // Check what we can potentially close
+            //
+            
+            // Buyer cannot fulfill what they have placed
+            if (balance < requiredBalance) {
+                executableShares = balance / price;
+                _navBuyOrders.changeSharesOnId({
+                    id : head,
+                    add : false,
+                    shares : executableShares
+                });
+
+                // Move the head over to the next ID
+                head = _navSellOrders.next(head);
+                remainingSharesToExecute -= executableShares;
+            }
+
+            // Buyer can fulfill what they have placed
+            else {
+                executableShares = candidateShares;
+                _navSellOrders.dequeue();
+                head = _navSellOrders._headId();
+            }
+
+            //
+            // Close
+            //
+
+            _transfer({
+                from : msg.sender,
+                to : candidateAddr,
+                amount : executableShares
+            });
+
+            amountToTransfer = executableShares * price;
+            _brokerageAccounts[candidateAddr] -= amountToTransfer;
+            payable(msg.sender).transfer(amountToTransfer);
+        }
+        
+        //
+        // Finish - decide action
+        //
+
+        if (remainingSharesToExecute > 0) {
+            if (queueIfPartial) {
+                orderId = _navSellOrders.enqueue({
+                    addr : msg.sender,
+                    shares : remainingSharesToExecute
+                });
+
+                _balances[msg.sender] -= remainingSharesToExecute;
+                _custodyAccounts[msg.sender] += remainingSharesToExecute;
+                return (false, orderId);
+            }
+            else {
+                return (false, 0);
+            }
+        }
+        
         return (true, 0);
     }
 
@@ -196,31 +302,65 @@ contract FixedNavFund is AbstractFund {
         uint256 price = navPerShare();
         address clientAddr;
         uint256 clientShares;
+        uint256 head;
 
-        // Close the buy orders
+        // Outstanding buy orders
         if (_navBuyOrders._headId() != 0) {
-            while (_navBuyOrders._headId() != 0) {
-                continue;
+            head = _navBuyOrders._headId();
+            while (head != 0) {
+                (clientAddr, clientShares)
+                    = _navBuyOrders.getOrderDetails(head);
+                
+                if (_brokerageAccounts[clientAddr] >= price) {
+                    // Execute the maximum they can afford of the order
+                    uint256 executableShares = _min(
+                        _brokerageAccounts[clientAddr] / price,
+                        clientShares
+                    );
+                    unchecked {
+                        _brokerageAccounts[clientAddr] -= (executableShares * price);
+                    }
+
+                    _mint({addr : clientAddr, amount : executableShares});
+                }
+                
+                _navBuyOrders.dequeue();
+                head = _navBuyOrders._headId();
             }
         }
 
+        // Outstanding sell orders
         else if (_navSellOrders._headId() != 0) {
-            uint256 head = _navSellOrders._headId();
+            head = _navSellOrders._headId();
             while (head != 0) {
                 (clientAddr, clientShares)
                     = _navSellOrders.getOrderDetails(head);
 
                 payable(clientAddr).transfer(price * clientShares);
-                
-                unchecked {
-                    _custodyAccounts[clientAddr] -= clientShares;
-                }
+                _burn({addr : clientAddr, amount : clientShares});
+
+                _navSellOrders.dequeue();
+                head = _navSellOrders._headId();
             }
         }
 
+        // Book is already balanced
         else {
             return;
         }
+    }
+
+    function myBrokerageAccountBalance() external view returns (uint256) {
+        return _brokerageAccounts[msg.sender];
+    }
+
+    function getOrderDetails(uint256 id, bool buy) 
+        external 
+        view 
+        returns (address addr, uint256 shares)
+    {
+        if (buy) {return _navBuyOrders.getOrderDetails(id);}
+        else {return _navSellOrders.getOrderDetails(id);}
     }
 
     /// -----------------------------
@@ -238,7 +378,7 @@ contract FixedNavFund is AbstractFund {
     ///         Internal
     /// -----------------------------
 
-    function min(uint256 a, uint256 b) internal pure returns (uint256) {
+    function _min(uint256 a, uint256 b) internal pure returns (uint256) {
         if (a > b) {return a;}
         return b;
     }

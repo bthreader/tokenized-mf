@@ -126,7 +126,7 @@ abstract contract AbstractFund is ERC20 {
      * @dev Computes the NAV per share (Wei)
      */ 
     function navPerShare() public view returns (uint256) {
-        return nav() / totalSupply();
+        return nav() / _totalShares;
     }
 
     /// -----------------------------

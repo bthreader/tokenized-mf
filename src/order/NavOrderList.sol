@@ -52,7 +52,7 @@ contract NavOrderList is AbstractOrderList {
         }
 
         // Encode the data
-        bytes memory data = abi.encodePacked(addr, shares);
+        bytes memory data = abi.encode(addr, shares);
 
         // Add the order information to LL
         _orders[newId] = Order({
@@ -84,7 +84,7 @@ contract NavOrderList is AbstractOrderList {
             newShares = currentShares - shares;
         }
 
-        changeData({id : id, newData : abi.encodePacked(addr, newShares)});
+        _changeData({id : id, newData : abi.encode(addr, newShares)});
     }
 
     /// -----------------------------
@@ -94,14 +94,14 @@ contract NavOrderList is AbstractOrderList {
     function getOrderDetails(uint256 id)
         public view returns (address addr, uint256 shares) 
     {
-        return decode(_orders[id].data);
+        return _decode(_orders[id].data);
     }
 
     /// -----------------------------
     ///         Internal
     /// -----------------------------
 
-    function decode(bytes memory data) 
+    function _decode(bytes memory data) 
         internal 
         pure 
         returns (address addr, uint256 shares) 
