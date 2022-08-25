@@ -7,14 +7,42 @@ import {GenericTest} from "../GenericTest.sol";
 import {NavOrderList} from "../../src/order/NavOrderList.sol";
 
 contract OrderListTest is Test, GenericTest {
+    
+    /// -----------------------------
+    ///         State
+    /// -----------------------------
+    
     NavOrderList private buyList;
+
+    /// -----------------------------
+    ///         Events
+    /// -----------------------------
+
+    event OrderQueued(
+        address indexed addr,
+        uint256 id
+    );
+
+    /// -----------------------------
+    ///         Setup
+    /// -----------------------------
 
     function setUp() public {
         buyList = new NavOrderList();
     }
 
+    /// -----------------------------
+    ///         Tests
+    /// -----------------------------
+
     function testOrderAdded() public {
         uint256 orderId;
+
+        vm.expectEmit(
+            true, false, false, false,
+            address(buyList)
+        );
+        emit OrderQueued(acc1, 1);
         orderId = buyList.enqueue({addr : acc1, shares : 50});
         assertTrue(orderId == 1, "incorrect index assigned");
         assertTrue(
@@ -41,8 +69,8 @@ contract OrderListTest is Test, GenericTest {
 
         firstOrderId = buyList.enqueue({addr : acc1, shares : 50});
         secondOrderId = buyList.enqueue({addr : acc2, shares : 50});
-        assertTrue(buyList._headId() == firstOrderId, "head id set wrong");
-        assertTrue(buyList._tailId() == secondOrderId, "tail id set wrong");
+        assertTrue(buyList._headId() == firstOrderId, "Head id set wrong");
+        assertTrue(buyList._tailId() == secondOrderId, "Tail id set wrong");
     
         buyList.deleteId(secondOrderId);
         assertTrue(

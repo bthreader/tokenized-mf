@@ -24,18 +24,14 @@ abstract contract AbstractFund is ERC20 {
     ///         Events
     /// -----------------------------
 
-    event OrderQueued(
-        address indexed addr,
-        uint256 id
-    );
-
     event QueuedOrderActioned(
         address indexed buyer, 
         address indexed seller, 
         uint256 shares,
         uint256 price,
         bool partiallyExecuted,
-        uint256 queuedOrderId
+        uint256 buyOrderId,
+        uint256 sellOrderId
     );
 
     /// -----------------------------
@@ -85,6 +81,16 @@ abstract contract AbstractFund is ERC20 {
         payable
         virtual
         returns (bool success, uint256 orderId);
+
+    function cancelBuyNavOrder(uint256 id) external onlyVerified {
+        // Make sure it was the sender who owns the order
+        (address addr, uint256 shares) = _navBuyOrders.getOrderDetails(id);
+        require(
+            msg.sender == addr,
+            "Fund: must be the order placer to cancel the order"
+        );
+        _navBuyOrders.deleteId(id);
+    }
     
     /**
      * @dev Places a sell order of size `shares`, the price sold at will 
@@ -97,12 +103,27 @@ abstract contract AbstractFund is ERC20 {
      * executed later
      */
     function placeSellNavOrder(uint256 shares, bool queueIfPartial) 
-        external 
+        external
         virtual
         returns (bool success, uint256 orderId);
 
+    function cancelSellNavOrder(uint256 id) external onlyVerified {
+        // Make sure it was the sender who owns the order
+        (address addr, uint256 shares) = _navSellOrders.getOrderDetails(id);
+        require(
+            msg.sender == addr,
+            "Fund: must be the order placer to cancel the order"
+        );
+        _navSellOrders.deleteId(id);
+        _transferFromCustodyAccount({
+            from : msg.sender,
+            to : msg.sender, 
+            amount : shares
+        });
+    }
+
     /**
-     * @dev Finds where the mismatch is in liquidity, then executes the orders,
+     * @dev Finds where the mismatch is in liquidity, then executes the orders.
      * 
      * If there are buy orders outstanding - take money from brokerage account
      * and mint shares.
@@ -112,6 +133,62 @@ abstract contract AbstractFund is ERC20 {
     function closeNavOrders()
         external
         virtual;
+
+    function myBrokerageAccountBalance() 
+        external 
+        view 
+        onlyVerified 
+        returns (uint256) 
+    {
+        return _brokerageAccounts[msg.sender];
+    }
+
+    function increaseMyBrokerageAccountBalance() 
+        external 
+        onlyVerified 
+        payable
+    {
+        _brokerageAccounts[msg.sender] += msg.value;
+    }
+
+    function decreaseMyBrokerageAccountBalance(uint256 amount) 
+        external 
+        onlyVerified
+    {
+        require(
+            amount <= _brokerageAccounts[msg.sender],
+            "Fund: amount to decrease bigger than the brokerage account"
+        );
+        unchecked{
+            _brokerageAccounts[msg.sender] -= amount;
+        }
+        payable(msg.sender).transfer(amount);
+    }
+
+    function myCustodyAccountBalance() 
+        external 
+        view 
+        onlyVerified 
+        returns (uint256) 
+    {
+        return _custodyAccounts[msg.sender];
+    }
+
+    function getBuyNavOrderDetails(uint256 id) 
+        external 
+        view 
+        returns (address addr, uint256 shares)
+    {
+        return _navBuyOrders.getOrderDetails(id);
+    }
+
+    function getSellNavOrderDetails(uint256 id) 
+        external 
+        view 
+        returns (address addr, uint256 shares)
+    {
+        return _navSellOrders.getOrderDetails(id);
+    }
 
     /// -----------------------------
     ///         Public
@@ -133,9 +210,17 @@ abstract contract AbstractFund is ERC20 {
     ///         Internal
     /// -----------------------------
 
-    function _burnFromCustodyAccount(address addr, uint256 shares) internal {
-        _custodyAccounts[addr] -= shares;
-        _totalShares -= shares;
-        emit Transfer(addr, address(0), shares);
+    function _transferFromCustodyAccount(
+        address from,
+        address to, 
+        uint256 amount
+    ) 
+        internal 
+    {
+        unchecked {
+            _custodyAccounts[from] -= amount;
+            _balances[to] += amount;
+        }
+        emit Transfer({from : from, to : to, value : amount});
     }
 }

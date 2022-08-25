@@ -13,7 +13,16 @@ import {AbstractOrderList} from "./AbstractOrderList.sol";
  * order. 
  */ 
 contract NavOrderList is AbstractOrderList {
-    
+
+    /// -----------------------------
+    ///         Events
+    /// -----------------------------
+
+    event OrderQueued(
+        address indexed addr,
+        uint256 id
+    );
+
     /// -----------------------------
     ///         External
     /// -----------------------------
@@ -62,6 +71,8 @@ contract NavOrderList is AbstractOrderList {
             data : data
         });
 
+        emit OrderQueued({addr : addr, id : newId});
+
         return newId;
     }
 
@@ -94,6 +105,11 @@ contract NavOrderList is AbstractOrderList {
     function getOrderDetails(uint256 id)
         public view returns (address addr, uint256 shares) 
     {
+        // Order doesn't exist
+        if (_orders[id].id == 0) {
+            return (address(0), shares);
+        }
+        // Order exists
         return _decode(_orders[id].data);
     }
 

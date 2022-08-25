@@ -39,7 +39,9 @@ abstract contract AbstractOrderList {
         // Single order case
         if (_headId == _tailId) {
             delete _orders[_headId];
-            _headId = _tailId = 0;
+
+            // Reset all pointers
+            _headId = _tailId = _incrementer = 0;
             return;
         }
 
