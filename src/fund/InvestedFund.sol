@@ -13,6 +13,7 @@ contract InvestedFund is Fund {
     Asset[] private _investments;
     uint256[] private _weights;
     uint256 private _nInvestments;
+    uint256 private _lastRebalancedTime;
 
     constructor (Asset[] memory investments, uint256[] memory weights) {
         require(
@@ -34,88 +35,6 @@ contract InvestedFund is Fund {
     /// -----------------------------
 
     /**
-     * @dev See {AbstractFund-closeNavOrders}.
-     */
-    function closeNavOrders()
-        external
-        override
-        onlyAdmin
-    {
-        uint256 price = navPerShare();
-        address clientAddr;
-        uint256 clientShares;
-        uint256 head;
-
-        // Outstanding buy orders
-        if (_navBuyOrders._headId() != 0) {
-            head = _navBuyOrders._headId();
-            while (head != 0) {
-                (clientAddr, clientShares)
-                    = _navBuyOrders.getOrderDetails(head);
-                
-                if (_brokerageAccounts[clientAddr] >= price) {
-                    // Execute the maximum they can afford of the order
-                    uint256 executableShares = _min(
-                        _brokerageAccounts[clientAddr] / price,
-                        clientShares
-                    );
-                    unchecked {
-                        _brokerageAccounts[clientAddr] 
-                            -= (executableShares * price);
-                    }
-
-                    _mint({addr : clientAddr, amount : executableShares});
-                    
-                    // Log
-                    emit QueuedOrderActioned({
-                        buyer : clientAddr,
-                        seller : address(this),
-                        shares : executableShares,
-                        price : price,
-                        partiallyExecuted : clientShares != executableShares,
-                        buyOrderId : head,
-                        sellOrderId : 0
-                    });
-                }
-                
-                _navBuyOrders.dequeue();
-                head = _navBuyOrders._headId();
-            }
-        }
-
-        // Outstanding sell orders
-        if (_navSellOrders._headId() != 0) {
-            head = _navSellOrders._headId();
-            while (head != 0) {
-                (clientAddr, clientShares)
-                    = _navSellOrders.getOrderDetails(head);
-
-                uint256 owedCash = price * clientShares;
-                _createCashPosition(owedCash);
-                payable(clientAddr).transfer(owedCash);
-                _burn({addr : clientAddr, amount : clientShares});
-
-                // Log
-                emit QueuedOrderActioned({
-                    buyer : address(this),
-                    seller : clientAddr,
-                    shares : clientShares,
-                    price : price,
-                    partiallyExecuted : false,
-                    buyOrderId : 0,
-                    sellOrderId : head
-                });
-
-                _navSellOrders.dequeue();
-                head = _navSellOrders._headId();
-            }
-        }
-
-        // Book is already balanced
-        return;
-    }
-
-    /**
      * @dev Allows the creator to set the share price in first instance.
      */
     function topUp() external payable {}
@@ -123,8 +42,13 @@ contract InvestedFund is Fund {
     /**
      * @dev Entry point to rebalance the fund using _allocate
      */
-    function rebalance() external onlyAdmin {
+    function rebalance() external {
         _allocate(nav());
+        _lastRebalancedTime = block.timestamp;
+    }
+
+    function getLastRebalancedTime() external view returns (uint256) {
+        return _lastRebalancedTime;
     }
 
     /// -----------------------------
@@ -157,6 +81,28 @@ contract InvestedFund is Fund {
         shares = new uint256[](_nInvestments);
         for (uint256 i = 0; i < _nInvestments; ++i) {
             shares[i] = _investments[i].balanceOf(address(this));
+        }
+    }
+
+    /// -----------------------------
+    ///         Internal
+    /// -----------------------------
+
+    /**
+     * @dev Ensures there is `amount` of cash available in the contract.
+     * Won't do anything if required position alread exists.
+     */
+    function _createCashPosition(uint256 amount) internal override {
+        if (address(this).balance >= amount) {
+            return;
+        }
+
+        // Free up the cash
+        else {
+            uint256 requiredCash = amount - address(this).balance;
+            uint256 investableCash = valueOfInvestments() - requiredCash;
+            _allocate(investableCash);
+            return;
         }
     }
 
@@ -215,24 +161,6 @@ contract InvestedFund is Fund {
             unchecked{
                 _investments[i].buy{ value : amountToSend }(sharesToBuy);
             }
-        }
-    }
-
-    /**
-     * @dev Ensures there is `amount` of cash available in the contract.
-     * Won't do anything if required position alread exists.
-     */
-    function _createCashPosition(uint256 amount) private {
-        if (address(this).balance >= amount) {
-            return;
-        }
-
-        // Free up the cash
-        else {
-            uint256 requiredCash = amount - address(this).balance;
-            uint256 investableCash = valueOfInvestments() - requiredCash;
-            _allocate(investableCash);
-            return;
         }
     }
 

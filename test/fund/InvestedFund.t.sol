@@ -18,7 +18,6 @@ contract InvestedFundTest is Test, GenericTest {
     Asset[] public investments;
     uint256[] public weights;
 
-
     constructor () {
         //
         // Create some assets
@@ -80,19 +79,45 @@ contract InvestedFundTest is Test, GenericTest {
     }
 
     function testAllocate() public {
-        vm.prank(acc1);
         fund.rebalance();
         uint256[] memory ownedShares;
         ownedShares = fund.ownedShares();
 
+        // 4 * 25 = 100
         assertTrue(
             ownedShares[0] == 4,
             "Allocation was wrong"
         );
 
+        // 2 * 50 = 100
         assertTrue(
             ownedShares[1] == 2,
             "Allocation was wrong"
         );
     }
+
+    function testTopUpThenRebalance() public {
+        fund.rebalance();
+        
+        // Fund is now 400 total value
+        fund.topUp{ value : 200 }();
+        fund.rebalance();
+        uint256[] memory ownedShares;
+        ownedShares = fund.ownedShares();
+
+        // 8 * 25 = 200
+        assertTrue(
+            ownedShares[0] == 8,
+            "Re-allocation was wrong"
+        );
+
+        // 4 * 50 = 200
+        assertTrue(
+            ownedShares[1] == 4,
+            "Re-allocation was wrong"
+        );
+    }
+
+    // Another test to see what happens if the price of the underlying
+    // asset changes
 }

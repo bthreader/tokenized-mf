@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.7.0 <0.9.0;
 
-import {FixedNavFund} from "./FixedNavFund.sol";
+import {OffChainFund} from "./OffChainFund.sol";
 
 contract Swap {
     
@@ -9,10 +9,10 @@ contract Swap {
     ///         State
     /// -----------------------------
     
-    FixedNavFund public _assetA;
-    FixedNavFund public _assetB;
+    OffChainFund public _assetA;
+    OffChainFund public _assetB;
 
-    constructor (FixedNavFund assetA, FixedNavFund assetB) {
+    constructor (OffChainFund assetA, OffChainFund assetB) {
         _assetA = assetA;
         _assetB = assetB;
     }

@@ -41,7 +41,7 @@ contract Asset is AssetInterface {
     function sell(uint256 shares) external {   
         require(
             _balances[msg.sender] >= shares,
-            "Asset: cannot withdraw more shares than you own"
+            "Asset: cannot sell more shares than you own"
         );
         payable(msg.sender).transfer(shares * pricePerShare());
         _totalShares -= shares;
@@ -55,6 +55,11 @@ contract Asset is AssetInterface {
     function topUp() external payable {}
 
     function withdraw(uint256 amount) external {
+        require(
+            amount <= address(this).balance,
+            "Asset: cannot withdraw more that is within the contract"
+        );
+        
         payable(msg.sender).transfer(amount);
     }
 

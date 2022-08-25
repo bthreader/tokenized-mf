@@ -4,12 +4,12 @@ pragma solidity ^0.8.13;
 import {Test} from "forge-std/Test.sol";
 import {GenericTest} from "../GenericTest.sol";
 
-import {FixedNavFund} from "../../src/fund/FixedNavFund.sol";
+import {OffChainFund} from "../../src/fund/OffChainFund.sol";
 import {Swap} from "../../src/fund/Swap.sol";
 
 contract SwapTest is Test, GenericTest {
-    FixedNavFund public _fundA;
-    FixedNavFund public _fundB;
+    OffChainFund public _fundA;
+    OffChainFund public _fundB;
     Swap public swap;
 
     constructor () {    
@@ -19,7 +19,8 @@ contract SwapTest is Test, GenericTest {
         //
         
         vm.startPrank(acc1);
-        _fundA = new FixedNavFund();     
+        _fundA = new OffChainFund();
+        _fundA.setNav(100);
         _fundA.addVerifier(acc1);
 
         // Verify
@@ -42,7 +43,8 @@ contract SwapTest is Test, GenericTest {
         //
 
         vm.startPrank(acc1);
-        _fundB = new FixedNavFund();     
+        _fundB = new OffChainFund();
+        _fundB.setNav(100);
         _fundB.addVerifier(acc1);
 
         // Verify

@@ -82,16 +82,6 @@ abstract contract AbstractFund is ERC20 {
         virtual
         returns (bool success, uint256 orderId);
 
-    function cancelBuyNavOrder(uint256 id) external onlyVerified {
-        // Make sure it was the sender who owns the order
-        (address addr, uint256 shares) = _navBuyOrders.getOrderDetails(id);
-        require(
-            msg.sender == addr,
-            "Fund: must be the order placer to cancel the order"
-        );
-        _navBuyOrders.deleteId(id);
-    }
-    
     /**
      * @dev Places a sell order of size `shares`, the price sold at will 
      * always equal NAV per share at the point of transaction. If the order
@@ -107,21 +97,6 @@ abstract contract AbstractFund is ERC20 {
         virtual
         returns (bool success, uint256 orderId);
 
-    function cancelSellNavOrder(uint256 id) external onlyVerified {
-        // Make sure it was the sender who owns the order
-        (address addr, uint256 shares) = _navSellOrders.getOrderDetails(id);
-        require(
-            msg.sender == addr,
-            "Fund: must be the order placer to cancel the order"
-        );
-        _navSellOrders.deleteId(id);
-        _transferFromCustodyAccount({
-            from : msg.sender,
-            to : msg.sender, 
-            amount : shares
-        });
-    }
-
     /**
      * @dev Finds where the mismatch is in liquidity, then executes the orders.
      * 
@@ -133,6 +108,10 @@ abstract contract AbstractFund is ERC20 {
     function closeNavOrders()
         external
         virtual;
+
+    function cancelBuyNavOrder(uint256 id) external virtual;
+
+    function cancelSellNavOrder(uint256 id) external virtual;
 
     function myBrokerageAccountBalance() 
         external 
@@ -195,32 +174,14 @@ abstract contract AbstractFund is ERC20 {
     /// -----------------------------
     
     /**
-     * @dev Computes the NAV (Wei)
+     * @dev Computes the NAV.
      */ 
     function nav() public view virtual returns (uint256);
 
     /**
-     * @dev Computes the NAV per share (Wei)
+     * @dev Computes the NAV per share.
      */ 
     function navPerShare() public view returns (uint256) {
         return nav() / _totalShares;
-    }
-
-    /// -----------------------------
-    ///         Internal
-    /// -----------------------------
-
-    function _transferFromCustodyAccount(
-        address from,
-        address to, 
-        uint256 amount
-    ) 
-        internal 
-    {
-        unchecked {
-            _custodyAccounts[from] -= amount;
-            _balances[to] += amount;
-        }
-        emit Transfer({from : from, to : to, value : amount});
     }
 }

@@ -4,19 +4,20 @@ pragma solidity ^0.8.13;
 import {Test} from "forge-std/Test.sol";
 import {GenericTest} from "../GenericTest.sol";
 
-import {FixedNavFund} from "../../src/fund/FixedNavFund.sol";
+import {OffChainFund} from "../../src/fund/OffChainFund.sol";
 
-contract FixedNavFundTest is Test, GenericTest {
+contract OffChainFundTest is Test, GenericTest {
     
     /// -----------------------------
     ///         State
     /// -----------------------------
 
-    FixedNavFund public fund;
+    OffChainFund public fund;
 
     constructor () {
         vm.startPrank(acc1);
-        fund = new FixedNavFund();
+        fund = new OffChainFund();
+        fund.setNav(100);
         fund.addVerifier(acc1);
         fund.addVerified(acc2);
         fund.addVerified(acc3);
