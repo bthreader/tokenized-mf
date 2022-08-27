@@ -59,12 +59,7 @@ contract InvestedFundTest is Test, GenericTest {
         // acc2 buys a share
         vm.deal(acc2, 100);
         vm.prank(acc2);
-        fund.placeBuyNavOrder{ value : 100 }({
-            shares : 1,
-            queueIfPartial : true
-        });
-        vm.prank(acc1);
-        fund.closeNavOrders();
+        fund.placeBuyNavOrder{ value : 100 }(1);
     }
 
     /// -----------------------------

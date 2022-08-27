@@ -21,13 +21,12 @@ abstract contract Fund is AbstractFund {
     /**
      * @dev See {AbstractFund-placeBuyNavOrder}.
      */
-    function placeBuyNavOrder(uint256 shares, bool queueIfPartial)
+    function placeBuyNavOrder(uint256 shares)
         external
         payable
         override
         onlyVerified
         sharesNotZero(shares)
-        returns (bool success, uint256 orderId)
     {
         require(
             msg.value > 0,
@@ -39,10 +38,17 @@ abstract contract Fund is AbstractFund {
         // Prep to traverse sell queue
         //
         
-        // Define
         address candidateAddr;
         uint256 candidateShares;
         uint256 sharesToExecute = _min(shares, (msg.value / price));
+        
+        // Refund is in order
+        if ((sharesToExecute * price) < msg.value) {
+            payable(msg.sender).transfer(
+                msg.value - (sharesToExecute * price)
+            );
+        }
+
         uint256 remainingSharesToExecute = sharesToExecute;
         uint256 head = _navSellOrders._headId();
 
@@ -79,7 +85,6 @@ abstract contract Fund is AbstractFund {
                     shares : remainingSharesToExecute,
                     price : price,
                     partiallyExecuted : true,
-                    buyOrderId : 0,
                     sellOrderId : head
                 });
 
@@ -105,7 +110,6 @@ abstract contract Fund is AbstractFund {
                     shares : candidateShares,
                     price : price,
                     partiallyExecuted : false,
-                    buyOrderId : 0,
                     sellOrderId : head
                 });
 
@@ -126,214 +130,36 @@ abstract contract Fund is AbstractFund {
             }
         }
 
-        //
-        // Workout where that leaves us
-        //
-
-        // Executed what we could
-        if (remainingSharesToExecute == 0) {
-            // Full order executed - may need a refund
-            if (sharesToExecute == shares) {
-                payable(msg.sender).transfer(msg.value - (price * shares));
-                return (true, 0); 
-            }
-
-            // Order partially executed but we executed what we could
-            else if (sharesToExecute < shares) {
-                if (queueIfPartial) {
-                    // Put any remaining cash in brokerage account
-                    _brokerageAccounts[msg.sender] 
-                        += msg.value - (sharesToExecute * price);
-
-                    // Queue the remaining shares
-                    orderId = _navBuyOrders.enqueue({
-                        addr : msg.sender,
-                        shares : (shares - sharesToExecute)
-                    });
-
-                    return (false, orderId);
-                }                
-                else {
-                    return (false, 0);
-                }
-            }
-        }
-
-        else {
-            uint256 boughtShares = sharesToExecute - remainingSharesToExecute;
-            
-            if (queueIfPartial) {
-                // Put remaining cash in the broker account
-                unchecked {
-                    _brokerageAccounts[msg.sender] += 
-                        (msg.value - (boughtShares * price));
-                }
-
-                // Work out total outstanding
-                uint256 outstanding = 
-                    remainingSharesToExecute + (shares - sharesToExecute);
-
-                // Queue the outstanding
-                orderId = _navBuyOrders.enqueue({
-                    addr : msg.sender,
-                    shares : outstanding
-                });
-
-                return (false, orderId);
-            }
-
-            else {
-                payable(msg.sender).transfer(
-                    msg.value - (boughtShares * price)
-                );
-                return (false, 0);
-            }
+        // Finished with the sell queue
+        // Mint remaining if necessary
+        if (remainingSharesToExecute != 0) {
+            _mint({addr : msg.sender, amount : remainingSharesToExecute});
         }
     }
 
     /**
      * @dev See {AbstractFund-placeSellNavOrder}.
      */
-    function placeSellNavOrder(uint256 shares, bool queueIfPartial) 
+    function placeSellNavOrder(uint256 shares) 
         external 
         override
         onlyVerified
         sharesNotZero(shares)
-        returns (bool success, uint256 orderId) 
+        returns (uint256 orderId) 
     {
         require(
             _balances[msg.sender] >= shares,
             "Fund: insufficient balance to place sell order"
         );
-
-        uint256 price = navPerShare();
-    
-        //
-        // Prep to traverse buy queue
-        //
-        
-        // Define
-        address candidateAddr;
-        uint256 candidateShares;
-        uint256 remainingSharesToExecute = shares;
-        uint256 head = _navSellOrders._headId();
-        uint256 actionableCandidateShares;
-
-        //
-        // Traverse buy queue
-        //
-
-        /**
-         * @dev While there are
-         * -> outstanding shares in the order 
-         * -> buyers to buy them
-         */
-        while ((remainingSharesToExecute > 0) && (head != 0)) {
-            (candidateAddr, candidateShares)
-                = _navBuyOrders.getOrderDetails(head);
-
-            // Cash the candidate has
-            uint256 balance = _brokerageAccounts[candidateAddr];
-            
-            // Skip
-            if (balance == 0) {
-                head = _navSellOrders.next(head);
-                continue;
-            }
-
-            actionableCandidateShares = _min(
-                candidateShares, 
-                balance / price
-            );
-
-            // Shares we're interested in
-            uint256 sharesToExecute = _min(
-                remainingSharesToExecute,
-                actionableCandidateShares
-            );
-
-            // Skip
-            if (sharesToExecute == 0) {
-                head = _navSellOrders.next(head);
-                continue;
-            }
-
-            // Action some of the shares then move on
-            if (sharesToExecute < candidateShares) {
-                _handleShareSale({
-                    from : msg.sender,
-                    to : candidateAddr,
-                    amount : sharesToExecute,
-                    price : price
-                });
-                _navBuyOrders.changeSharesOnId({
-                    id : head,
-                    add : false,
-                    shares : candidateShares - sharesToExecute
-                });
-
-                // Log
-                emit QueuedOrderActioned({
-                    buyer : candidateAddr,
-                    seller : msg.sender,
-                    shares : sharesToExecute,
-                    price : price,
-                    partiallyExecuted : true,
-                    buyOrderId : head,
-                    sellOrderId : 0
-                });
-
-                head = _navSellOrders.next(head);
-                remainingSharesToExecute -= sharesToExecute;
-            }
-
-            // Action full amount then dequeue the order
-            else {
-                _handleShareSale({
-                    from : msg.sender,
-                    to : candidateAddr,
-                    amount : candidateShares,
-                    price : price
-                });
-                _navSellOrders.dequeue();
-
-                // Log
-                emit QueuedOrderActioned({
-                    buyer : candidateAddr,
-                    seller : msg.sender,
-                    shares : candidateShares,
-                    price : price,
-                    partiallyExecuted : false,
-                    buyOrderId : head,
-                    sellOrderId : 0
-                });
-
-                head = _navSellOrders._headId();
-                remainingSharesToExecute -= candidateShares;
-            }
+        unchecked{
+            _balances[msg.sender] -= shares;
+            _custodyAccounts[msg.sender] += shares;
         }
         
-        //
-        // Finish - decide action
-        //
-
-        if (remainingSharesToExecute > 0) {
-            if (queueIfPartial) {
-                orderId = _navSellOrders.enqueue({
-                    addr : msg.sender,
-                    shares : remainingSharesToExecute
-                });
-
-                _balances[msg.sender] -= remainingSharesToExecute;
-                _custodyAccounts[msg.sender] += remainingSharesToExecute;
-                return (false, orderId);
-            }
-            else {
-                return (false, 0);
-            }
-        }
-        
-        return (true, 0);
+        orderId = _navSellOrders.enqueue({
+            addr : msg.sender,
+            shares : shares
+        });
     }
 
     /**
@@ -348,43 +174,6 @@ abstract contract Fund is AbstractFund {
         address clientAddr;
         uint256 clientShares;
         uint256 head;
-
-        // Outstanding buy orders
-        if (_navBuyOrders._headId() != 0) {
-            head = _navBuyOrders._headId();
-            while (head != 0) {
-                (clientAddr, clientShares)
-                    = _navBuyOrders.getOrderDetails(head);
-                
-                if (_brokerageAccounts[clientAddr] >= price) {
-                    // Execute the maximum they can afford of the order
-                    uint256 executableShares = _min(
-                        _brokerageAccounts[clientAddr] / price,
-                        clientShares
-                    );
-                    unchecked {
-                        _brokerageAccounts[clientAddr] 
-                            -= (executableShares * price);
-                    }
-
-                    _mint({addr : clientAddr, amount : executableShares});
-                    
-                    // Log
-                    emit QueuedOrderActioned({
-                        buyer : clientAddr,
-                        seller : address(this),
-                        shares : executableShares,
-                        price : price,
-                        partiallyExecuted : clientShares != executableShares,
-                        buyOrderId : head,
-                        sellOrderId : 0
-                    });
-                }
-                
-                _navBuyOrders.dequeue();
-                head = _navBuyOrders._headId();
-            }
-        }
 
         // Outstanding sell orders
         if (_navSellOrders._headId() != 0) {
@@ -405,7 +194,6 @@ abstract contract Fund is AbstractFund {
                     shares : clientShares,
                     price : price,
                     partiallyExecuted : false,
-                    buyOrderId : 0,
                     sellOrderId : head
                 });
 
@@ -416,16 +204,6 @@ abstract contract Fund is AbstractFund {
 
         // Book is already balanced
         return;
-    }
-
-    function cancelBuyNavOrder(uint256 id) external override onlyVerified {
-        // Make sure it was the sender who owns the order
-        (address addr, uint256 shares) = _navBuyOrders.getOrderDetails(id);
-        require(
-            msg.sender == addr,
-            "Fund: must be the order placer to cancel the order"
-        );
-        _navBuyOrders.deleteId(id);
     }
 
     function cancelSellNavOrder(uint256 id) external override onlyVerified {
@@ -461,25 +239,6 @@ abstract contract Fund is AbstractFund {
     /// -----------------------------
     ///         Private
     /// -----------------------------
-
-    function _handleShareSale(
-        address from,
-        address to,
-        uint256 amount,
-        uint256 price
-    ) 
-        private 
-    {
-        _transfer({
-            from : from,
-            to : to,
-            amount : amount
-        });
-
-        uint256 amountToTransfer = amount * price;
-        _brokerageAccounts[to] -= amountToTransfer;
-        payable(from).transfer(amountToTransfer);
-    }
 
     function _burnFromCustodyAccount(address addr, uint256 shares) private {
         _custodyAccounts[addr] -= shares;

@@ -157,7 +157,8 @@ contract InvestedFund is Fund {
         for (uint256 i = 0; i < buyIndex; ++i) {
             uint256 index = buyIndices[i];
             uint256 sharesToBuy = proposedShares[index] - actualShares[index];
-            uint256 amountToSend = _investments[index].pricePerShare() * sharesToBuy;
+            uint256 amountToSend = 
+                _investments[index].pricePerShare() * sharesToBuy;
             unchecked{
                 _investments[i].buy{ value : amountToSend }(sharesToBuy);
             }

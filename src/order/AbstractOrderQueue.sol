@@ -5,7 +5,7 @@ pragma solidity >=0.7.0 <0.9.0;
  * @dev Doesn't define any methods for data insertion, as this is
  * implementation dependent.
  */
-abstract contract AbstractOrderList {       
+abstract contract AbstractOrderQueue {       
     
     /// -----------------------------
     ///         Types

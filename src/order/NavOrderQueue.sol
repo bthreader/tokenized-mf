@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.7.0 <0.9.0;
 
-import {AbstractOrderList} from "./AbstractOrderList.sol";
+import {AbstractOrderQueue} from "./AbstractOrderQueue.sol";
 
 /** 
  * @dev Implementation of an order list where we store the address of the
@@ -12,7 +12,7 @@ import {AbstractOrderList} from "./AbstractOrderList.sol";
  * Used for NAV based orders where there is no bid-ask associated with the
  * order. 
  */ 
-contract NavOrderList is AbstractOrderList {
+contract NavOrderQueue is AbstractOrderQueue {
 
     /// -----------------------------
     ///         Events

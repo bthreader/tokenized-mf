@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import {Test} from "forge-std/Test.sol";
 import {GenericTest} from "../GenericTest.sol";
 
-import {NavOrderList} from "../../src/order/NavOrderList.sol";
+import {NavOrderQueue} from "../../src/order/NavOrderQueue.sol";
 
 contract OrderListTest is Test, GenericTest {
     
@@ -12,7 +12,7 @@ contract OrderListTest is Test, GenericTest {
     ///         State
     /// -----------------------------
     
-    NavOrderList private buyList;
+    NavOrderQueue private buyList;
 
     /// -----------------------------
     ///         Events
@@ -28,7 +28,7 @@ contract OrderListTest is Test, GenericTest {
     /// -----------------------------
 
     function setUp() public {
-        buyList = new NavOrderList();
+        buyList = new NavOrderQueue();
     }
 
     /// -----------------------------

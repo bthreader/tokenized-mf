@@ -32,6 +32,7 @@ contract Asset is AssetInterface {
                 false,
                 "Asset: didn't send the right amount of money"
             );
+            return;
         }
         
         _totalShares += shares;
@@ -43,9 +44,9 @@ contract Asset is AssetInterface {
             _balances[msg.sender] >= shares,
             "Asset: cannot sell more shares than you own"
         );
-        payable(msg.sender).transfer(shares * pricePerShare());
         _totalShares -= shares;
         _balances[msg.sender] -= shares;
+        payable(msg.sender).transfer(shares * pricePerShare());
     }
 
     function balanceOf(address addr) external view returns (uint256) {
