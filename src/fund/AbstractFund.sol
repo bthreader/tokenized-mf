@@ -107,6 +107,20 @@ abstract contract AbstractFund is ERC20 {
         return _navSellOrders.getOrderDetails(id);
     }
 
+    function fundCashPosition() 
+        external
+        view
+        onlyAccountant
+        returns (uint256 balance) 
+    {
+        balance = address(this).balance;
+    }
+
+    /**
+     * @dev Allows the creator to set the share price in first instance.
+     */
+    function topUp() external payable {}
+
     /// -----------------------------
     ///         Public
     /// -----------------------------

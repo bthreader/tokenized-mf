@@ -17,6 +17,7 @@ contract OffChainFundTest is Test, GenericTest {
     constructor () {
         vm.startPrank(acc1);
         fund = new OffChainFund();
+        fund.addAccountant(acc1);
         fund.setNav(100);
         fund.addVerifier(acc1);
         fund.addVerified(acc2);

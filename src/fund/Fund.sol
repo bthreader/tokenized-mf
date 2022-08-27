@@ -168,7 +168,7 @@ abstract contract Fund is AbstractFund {
     function closeNavOrders()
         external
         override
-        onlyAdmin
+        onlyAccountant
     {
         uint256 price = navPerShare();
         address clientAddr;

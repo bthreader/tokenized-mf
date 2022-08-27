@@ -20,6 +20,7 @@ contract SwapTest is Test, GenericTest {
         
         vm.startPrank(acc1);
         _fundA = new OffChainFund();
+        _fundA.addAccountant(acc1);
         _fundA.setNav(100);
         _fundA.addVerifier(acc1);
 
@@ -39,6 +40,7 @@ contract SwapTest is Test, GenericTest {
 
         vm.startPrank(acc1);
         _fundB = new OffChainFund();
+        _fundB.addAccountant(acc1);
         _fundB.setNav(100);
         _fundB.addVerifier(acc1);
 

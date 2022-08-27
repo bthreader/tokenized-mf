@@ -28,11 +28,11 @@ contract OffChainFund is Fund {
         return total * price;
     }
 
-    function setNav(uint256 value) external onlyAdmin {
+    function setNav(uint256 value) external onlyAccountant {
         _nav = value;
     }
 
-    function withdraw(uint256 amount) external onlyAdmin {
+    function withdraw(uint256 amount) external onlyAccountant {
         payable(msg.sender).transfer(amount);
     }
 

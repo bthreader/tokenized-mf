@@ -35,11 +35,6 @@ contract InvestedFund is Fund {
     /// -----------------------------
 
     /**
-     * @dev Allows the creator to set the share price in first instance.
-     */
-    function topUp() external payable {}
-
-    /**
      * @dev Entry point to rebalance the fund using _allocate
      */
     function rebalance() external {

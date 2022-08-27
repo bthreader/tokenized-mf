@@ -12,6 +12,39 @@ contract ERC20 is ComplexVerify, IERC20 {
     
     uint256 public _totalShares;
     mapping(address => mapping(address => uint256)) internal _allowances;
+    mapping(address => bool) _accountants;
+
+    /// -----------------------------
+    ///         Events
+    /// -----------------------------
+
+    /**
+     *  @dev Emitted when `admin` adds a `verifier` to the contract
+     */
+    event AccountantAdded(
+        address indexed accountant,
+        address indexed admin
+    );
+
+    /**
+     *  @dev Emitted when `admin` removes `verifier` from contract
+     */
+    event AccountantRemoved(
+        address indexed accountant,
+        address indexed admin
+    );
+
+    /// -----------------------------
+    ///         Modifiers
+    /// -----------------------------
+
+    modifier onlyAccountant() {
+        require(
+            _accountants[msg.sender],
+            "ERC20: you are not an accountant"
+        );
+        _;
+    }
 
     /// ----------------------------
     ///         External
@@ -117,7 +150,11 @@ contract ERC20 is ComplexVerify, IERC20 {
         address from,
         address to,
         uint256 amount
-    ) external onlyVerified returns (bool) {
+    )
+        external 
+        onlyVerified 
+        returns (bool) 
+    {
         require(
             isVerified(to),
             "ERC20: can only provide allowances to verified customers"
@@ -143,7 +180,7 @@ contract ERC20 is ComplexVerify, IERC20 {
      */
     function burnAndReissue(address oldAddr, address newAddr) 
         external 
-        onlyAdmin
+        onlyAccountant
     {
         require(isVerified(oldAddr), "Fund: old address isn't verified");
         require(
@@ -184,6 +221,26 @@ contract ERC20 is ComplexVerify, IERC20 {
         returns (uint256) 
     {
         return _allowances[owner][spender];
+    }
+
+    function addAccountant(address addr) external onlyAdmin {
+        require(
+            _accountants[addr] == false,
+            "ERC20: accountant already added"
+        );
+        
+        _accountants[addr] = true;
+        emit AccountantAdded({accountant : addr, admin : msg.sender});
+    }
+
+    function removeAccountant(address addr) external onlyAdmin {
+        require(
+            _accountants[addr],
+            "ERC20: address is not an accountant"
+        );
+        
+        _accountants[addr] = false;
+        emit AccountantRemoved({accountant : addr, admin : msg.sender});
     }
 
     /// -----------------------------
