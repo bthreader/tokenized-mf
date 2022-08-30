@@ -13,7 +13,6 @@ contract InvestedFund is Fund {
     Asset[] private _investments;
     uint256[] private _weights;
     uint256 private _nInvestments;
-    uint256 private _lastRebalancedTime;
 
     constructor (Asset[] memory investments, uint256[] memory weights) {
         require(
@@ -31,6 +30,12 @@ contract InvestedFund is Fund {
     }
 
     /// -----------------------------
+    ///         Events
+    /// -----------------------------
+
+    event Rebalance(uint256[] newShares, address caller);
+
+    /// -----------------------------
     ///         External
     /// -----------------------------
 
@@ -39,11 +44,7 @@ contract InvestedFund is Fund {
      */
     function rebalance() external {
         _allocate(nav());
-        _lastRebalancedTime = block.timestamp;
-    }
-
-    function getLastRebalancedTime() external view returns (uint256) {
-        return _lastRebalancedTime;
+        emit Rebalance(ownedShares(), msg.sender);
     }
 
     /// -----------------------------
@@ -112,42 +113,31 @@ contract InvestedFund is Fund {
     function _allocate(uint256 amount) private {
         // Decide some allocation
         uint256[] memory proposedShares = new uint256[](_nInvestments);
-        
         for (uint i = 0; i < _nInvestments; ++i) {
             uint256 targetAmount = (amount * _weights[i]) / 100;
             uint256 price = _investments[i].pricePerShare();
             proposedShares[i] = targetAmount / price;
         }
-
-        uint256[] memory actualShares = ownedShares();
-
-        //
-        // Check existing positions - liquidate or buy where necessary
-        //
         
         // Iterate through all adjustments
         // Action the sell adjustments
         // Save the buy adjustments to memory for later
+        uint256[] memory actualShares = ownedShares();
         uint256[] memory buyIndices = new uint256[](_nInvestments);
         uint256 buyIndex = 0;
-
+        
         for (uint256 i = 0; i < _nInvestments; ++i) {
             if (proposedShares[i] < actualShares[i]) {
                 unchecked{
                     _investments[i].sell(actualShares[i] - proposedShares[i]);
                 }
             }
-
             else if (proposedShares[i] > actualShares[i]) {
                 buyIndices[buyIndex] = i;
                 buyIndex += 1;
             }
-            
-            else {
-                continue;
-            }
+            else {continue;}
         }
-
         // Do the buy adjustments
         for (uint256 i = 0; i < buyIndex; ++i) {
             uint256 index = buyIndices[i];

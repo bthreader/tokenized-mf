@@ -12,7 +12,7 @@ contract ERC20 is ComplexVerify, IERC20 {
     
     uint256 public _totalShares;
     mapping(address => mapping(address => uint256)) internal _allowances;
-    mapping(address => bool) _accountants;
+    mapping(address => bool) private _accountants;
 
     /// -----------------------------
     ///         Events
@@ -243,7 +243,7 @@ contract ERC20 is ComplexVerify, IERC20 {
         emit AccountantRemoved({accountant : addr, admin : msg.sender});
     }
 
-    /// -----------------------------
+    /// ----------------------------
     ///         Internal
     /// ----------------------------
 

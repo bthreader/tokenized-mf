@@ -202,7 +202,7 @@ abstract contract Fund is AbstractFund {
             }
         }
 
-        // Book is already balanced
+        // No sell orders outstanding
         return;
     }
 

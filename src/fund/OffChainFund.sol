@@ -8,6 +8,13 @@ contract OffChainFund is Fund {
     uint256 private _nav;
 
     /// -----------------------------
+    ///         Events
+    /// -----------------------------
+
+    event NavUpdated(uint256 value);
+    event Withdrawal(uint256 amount, address to);
+
+    /// -----------------------------
     ///         External
     /// -----------------------------
 
@@ -30,10 +37,12 @@ contract OffChainFund is Fund {
 
     function setNav(uint256 value) external onlyAccountant {
         _nav = value;
+        emit NavUpdated(value);
     }
 
     function withdraw(uint256 amount) external onlyAccountant {
         payable(msg.sender).transfer(amount);
+        emit Withdrawal({amount : amount, to : msg.sender});
     }
 
     /// -----------------------------

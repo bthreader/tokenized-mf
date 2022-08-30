@@ -42,18 +42,18 @@ contract OffChainFundTest is Test, GenericTest {
     ///         Tests
     /// -----------------------------
     
-    function testBuyOrderAdded() public {
+    function testBuyOrder() public {
         vm.deal(acc2, 1000);
         vm.prank(acc2);
         fund.placeBuyNavOrder{ value : 1000 }(10);
         
         assertTrue(
             fund.balanceOf(acc2) == 10,
-            "Unwanted price change"
+            "Shares not added to account"
         );
         assertTrue(
             fund.totalSupply() == 11,
-            "Unwanted supply change"
+            "Supply not changed"
         );
     }
 
