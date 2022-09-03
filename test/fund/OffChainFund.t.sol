@@ -45,7 +45,7 @@ contract OffChainFundTest is Test, GenericTest {
     function testBuyOrder() public {
         vm.deal(acc2, 1000);
         vm.prank(acc2);
-        fund.placeBuyNavOrder{ value : 1000 }(10);
+        fund.placeBuyNavOrder{ value : 1000 }();
         
         assertTrue(
             fund.balanceOf(acc2) == 10,
@@ -61,7 +61,7 @@ contract OffChainFundTest is Test, GenericTest {
         // Set up
         vm.deal(acc2, 1000);
         vm.startPrank(acc2);
-        fund.placeBuyNavOrder{ value : 1000 }(10);
+        fund.placeBuyNavOrder{ value : 1000 }();
         uint256 orderId = fund.placeSellNavOrder(10);
 
         assertTrue(
@@ -94,9 +94,9 @@ contract OffChainFundTest is Test, GenericTest {
     function testDeleteSellOrder() public {
         vm.deal(acc2, 1000);
         vm.startPrank(acc2);
-        fund.placeBuyNavOrder{ value : 1000 }(10);
+        fund.placeBuyNavOrder{ value : 1000 }();
         uint256 orderId = fund.placeSellNavOrder(10);
-        fund.cancelSellNavOrder(orderId);
+        fund.cancelQueuedSellNavOrder(orderId);
         (address addr, uint256 shares) 
             = fund.getQueuedSellNavOrderDetails(orderId);
         vm.stopPrank();
@@ -108,7 +108,7 @@ contract OffChainFundTest is Test, GenericTest {
         // Set up
         vm.deal(acc2, 1000);
         vm.startPrank(acc2);
-        fund.placeBuyNavOrder{ value : 1000 }(10);
+        fund.placeBuyNavOrder{ value : 1000 }();
         fund.placeSellNavOrder(10);
         vm.stopPrank();
 
@@ -136,7 +136,7 @@ contract OffChainFundTest is Test, GenericTest {
             sellOrderId : 1
         });
         vm.prank(acc3);
-        fund.placeBuyNavOrder{ value : 1001 }(10);
+        fund.placeBuyNavOrder{ value : 1001 }();
 
         assertTrue(
             acc3.balance == 1,

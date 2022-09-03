@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.7.0 <0.9.0;
 
-import {Fund} from "./Fund.sol";
+import {AbstractFund} from "./AbstractFund.sol";
 import {Asset} from "../asset/Asset.sol";
 
-contract InvestedFund is Fund {
+contract InvestedFund is AbstractFund {
     
     /// -----------------------------
     ///         State
@@ -40,7 +40,49 @@ contract InvestedFund is Fund {
     /// -----------------------------
 
     /**
-     * @dev Entry point to rebalance the fund using _allocate
+     * @dev See {AbstractFund-placeBuyNavOrder}.
+     */
+    function placeBuyNavOrder()
+        external
+        payable
+        override
+        onlyVerified
+    {
+        uint256 oldNav = nav() - msg.value;
+        uint256 price = oldNav / _totalShares;
+        uint256 sharesToExecute = _handleBuyCash({
+            addr : msg.sender,
+            money : msg.value,
+            price : price
+        });
+        _mint({addr : msg.sender, amount : sharesToExecute});
+        _allocate(nav());
+    }
+
+    /**
+     * @dev Burns shares and pays seller. Creates a cash position 
+     * where necessary.
+     */
+    function placeSellNavOrder(uint256 shares) 
+        external 
+        onlyVerified
+        sharesNotZero(shares) 
+    {
+        require(
+            _balances[msg.sender] >= shares,
+            "Fund: insufficient balance to place sell order"
+        );
+        uint256 price = navPerShare();
+        uint256 money = price * shares;
+        _createCashPosition(money);
+        payable(msg.sender).transfer(money);
+        _burn({addr : msg.sender, amount : shares});
+    }
+
+    /**
+     * @dev External entry point to rebalance the fund. For use when there
+     * is no buy / sell activity and the value of the underlying investments
+     * have changed.
      */
     function rebalance() external {
         _allocate(nav());
@@ -80,6 +122,8 @@ contract InvestedFund is Fund {
         }
     }
 
+    fallback() external payable {}
+
     /// -----------------------------
     ///         Internal
     /// -----------------------------
@@ -88,7 +132,7 @@ contract InvestedFund is Fund {
      * @dev Ensures there is `amount` of cash available in the contract.
      * Won't do anything if required position alread exists.
      */
-    function _createCashPosition(uint256 amount) internal override {
+    function _createCashPosition(uint256 amount) internal {
         if (address(this).balance >= amount) {
             return;
         }
@@ -111,7 +155,10 @@ contract InvestedFund is Fund {
      * investments to determine what changes need to be made.
      */
     function _allocate(uint256 amount) private {
-        // Decide some allocation
+        // Get current allocation
+        uint256[] memory actualShares = ownedShares();
+        
+        // Decide some new allocation
         uint256[] memory proposedShares = new uint256[](_nInvestments);
         for (uint i = 0; i < _nInvestments; ++i) {
             uint256 targetAmount = (amount * _weights[i]) / 100;
@@ -119,18 +166,16 @@ contract InvestedFund is Fund {
             proposedShares[i] = targetAmount / price;
         }
         
-        // Iterate through all adjustments
-        // Action the sell adjustments
+        // Iterate through each investments
+        // Action sell orders on investments that need adjustmenting down
         // Save the buy adjustments to memory for later
-        uint256[] memory actualShares = ownedShares();
+        
         uint256[] memory buyIndices = new uint256[](_nInvestments);
         uint256 buyIndex = 0;
         
         for (uint256 i = 0; i < _nInvestments; ++i) {
             if (proposedShares[i] < actualShares[i]) {
-                unchecked{
-                    _investments[i].sell(actualShares[i] - proposedShares[i]);
-                }
+                _investments[i].sell(actualShares[i] - proposedShares[i]);
             }
             else if (proposedShares[i] > actualShares[i]) {
                 buyIndices[buyIndex] = i;
@@ -138,6 +183,7 @@ contract InvestedFund is Fund {
             }
             else {continue;}
         }
+
         // Do the buy adjustments
         for (uint256 i = 0; i < buyIndex; ++i) {
             uint256 index = buyIndices[i];
@@ -145,7 +191,7 @@ contract InvestedFund is Fund {
             uint256 amountToSend = 
                 _investments[index].pricePerShare() * sharesToBuy;
             unchecked{
-                _investments[i].buy{ value : amountToSend }(sharesToBuy);
+                _investments[i].buy{ value : amountToSend }();
             }
         }
     }

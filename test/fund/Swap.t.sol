@@ -32,7 +32,7 @@ contract SwapTest is Test, GenericTest {
         // Give acc2 10 shares
         vm.deal(acc2, 1000);
         vm.prank(acc2);
-        _fundA.placeBuyNavOrder{ value : 1000 }(10);
+        _fundA.placeBuyNavOrder{ value : 1000 }();
 
         //
         // Fund B
@@ -53,7 +53,7 @@ contract SwapTest is Test, GenericTest {
         // Give acc3 10 shares
         vm.deal(acc3, 1000);
         vm.prank(acc3);
-        _fundB.placeBuyNavOrder{ value : 1000 }(10);
+        _fundB.placeBuyNavOrder{ value : 1000 }();
 
         swap = new Swap({assetA : _fundA, assetB : _fundB});
         vm.startPrank(acc1);

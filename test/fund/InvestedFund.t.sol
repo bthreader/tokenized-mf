@@ -18,7 +18,7 @@ contract InvestedFundTest is Test, GenericTest {
     Asset[] public investments;
     uint256[] public weights;
 
-    constructor () {
+    function setUp() public {
         //
         // Create some assets
         //
@@ -59,7 +59,7 @@ contract InvestedFundTest is Test, GenericTest {
         // acc2 buys a share
         vm.deal(acc2, 100);
         vm.prank(acc2);
-        fund.placeBuyNavOrder{ value : 100 }(1);
+        fund.placeBuyNavOrder{ value : 100 }();
     }
 
     /// -----------------------------
@@ -74,7 +74,6 @@ contract InvestedFundTest is Test, GenericTest {
     }
 
     function testAllocate() public {
-        fund.rebalance();
         uint256[] memory ownedShares;
         ownedShares = fund.ownedShares();
 
@@ -89,11 +88,14 @@ contract InvestedFundTest is Test, GenericTest {
             ownedShares[1] == 2,
             "Allocation was wrong"
         );
+
+        assertTrue(
+            fund.valueOfInvestments() == 200,
+            "Value of investments not updated"
+        );
     }
 
-    function testTopUpThenRebalance() public {
-        fund.rebalance();
-        
+    function testTopUpThenRebalance() public {        
         // Fund is now 400 total value
         fund.topUp{ value : 200 }();
         fund.rebalance();
@@ -113,6 +115,30 @@ contract InvestedFundTest is Test, GenericTest {
         );
     }
 
-    // Another test to see what happens if the price of the underlying
-    // asset changes
+    function testBuy() public {
+        vm.deal(acc3, 100);
+        vm.prank(acc3);
+        fund.placeBuyNavOrder{ value : 100 }();
+        assertTrue(
+            fund.balanceOf(acc3) == 1,
+            "Balance not added"
+        );
+        assertTrue(
+            fund.navPerShare() == 100,
+            "Unexpected price change"
+        );
+    }
+
+    function testAutoSell() public {
+        assertTrue(
+            acc2.balance == 0,
+            "Wrong start point"
+        );
+        vm.prank(acc2);
+        fund.placeSellNavOrder(1);
+        assertTrue(
+            acc2.balance == 100,
+            "Money not transferred"
+        );
+    }
 }

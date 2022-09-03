@@ -9,26 +9,11 @@ abstract contract AbstractFund is ERC20 {
     /// -----------------------------
     ///         State
     /// -----------------------------
-    
-    NavOrderQueue internal _navSellOrders;
-    mapping(address => uint256) internal _custodyAccounts;
 
-    constructor() {
-        _navSellOrders = new NavOrderQueue();
+    constructor () {
+        _balances[msg.sender] = 1;
+        _totalShares += 1;
     }
-
-    /// -----------------------------
-    ///         Events
-    /// -----------------------------
-
-    event QueuedOrderActioned(
-        address indexed buyer, 
-        address indexed seller, 
-        uint256 shares,
-        uint256 price,
-        bool partiallyExecuted,
-        uint256 sellOrderId
-    );
 
     /// -----------------------------
     ///         Modifiers
@@ -47,74 +32,13 @@ abstract contract AbstractFund is ERC20 {
     /// -----------------------------
     
     /**
-     * @dev Find out what msg.sender can afford to buy of what they've 
-     * requested (`shares`), refund any extra money involved:
-     *      1. Sent more money than required for `shares`
-     *      2. Didn't send enough money for `shares` but more money than
-     *         price * sharesTheyCanActually afford
-     *
-     * Attempts first to close any outstanding sell orders, mints shares
-     * if there's no remaining sell orders
-     * 
-     * @param shares The number of shares to buy
+     * @dev Executes the maximum amount of shares the buyer can afford.
+     * must use_handleBuyCash to handle msg.value.
      */
-    function placeBuyNavOrder(uint256 shares)
+    function placeBuyNavOrder()
         external
         payable
         virtual;
-
-    /**
-     * @dev Places a sell order of size `shares`, the price sold at will 
-     * always equal NAV per share at the point of transaction. If the order
-     * isn't fully executed, the client has the option of adding the order
-     * to a queue. This is done using the a flag.
-     * 
-     * @param shares The number of shares to sell
-     */
-    function placeSellNavOrder(uint256 shares) 
-        external
-        virtual
-        returns (uint256 orderId);
-
-    /**
-     * @dev Finds where the mismatch is in liquidity, then executes the orders.
-     * 
-     * If there are buy orders outstanding - take money from brokerage account
-     * and mint shares.
-     *
-     * If there are sell orders outstanding - send money and burn shares.
-     */
-    function closeNavOrders()
-        external
-        virtual;
-
-    function cancelSellNavOrder(uint256 id) external virtual;
-
-    function myCustodyAccountBalance() 
-        external 
-        view 
-        onlyVerified 
-        returns (uint256) 
-    {
-        return _custodyAccounts[msg.sender];
-    }
-
-    function getQueuedSellNavOrderDetails(uint256 id) 
-        external 
-        view 
-        returns (address addr, uint256 shares)
-    {
-        return _navSellOrders.getOrderDetails(id);
-    }
-
-    function fundCashPosition() 
-        external
-        view
-        onlyAccountant
-        returns (uint256 balance) 
-    {
-        balance = address(this).balance;
-    }
 
     /**
      * @dev Allows the creator to set the share price in first instance.
@@ -135,5 +59,44 @@ abstract contract AbstractFund is ERC20 {
      */ 
     function navPerShare() public view returns (uint256) {
         return nav() / _totalShares;
+    }
+
+    /// -----------------------------
+    ///         Internal
+    /// -----------------------------
+
+    /**
+     * @dev Throws for msg.value=0 or msg.value < price. Always ensures 
+     * clients are refunded any cash which is not used for buying shares.
+     */
+    function _handleBuyCash(address addr, uint256 money, uint256 price) 
+        internal
+        returns (uint256 sharesToExecute)
+    {
+        require(
+            money > 0,
+            "Fund: msg.value must be greater than zero to place buy order"    
+        );
+
+        if (money < price) {
+            // Refund
+            payable(addr).transfer(money);
+
+            // Throw
+            require(
+                false,
+                "Fund: msg.value must be greater than or equal to price"
+            );
+        }
+        
+        sharesToExecute = (money / price);
+        
+        // Client will spend less than they sent
+        // -> Refund
+        if ((sharesToExecute * price) < money) {
+            payable(addr).transfer(
+                money - (sharesToExecute * price)
+            );
+        }
     }
 }

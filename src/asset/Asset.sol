@@ -21,20 +21,10 @@ contract Asset is AssetInterface {
     ///         External
     /// -----------------------------
     
-    function buy(uint256 shares) external payable {
+    function buy() external payable {
         // Calculate the price
         uint256 price = (address(this).balance - msg.value) / _totalShares;
-        
-        // Wrong amount sent, send a refund then throw
-        if (msg.value != price * shares) {
-            payable(msg.sender).transfer(msg.value);
-            require(
-                false,
-                "Asset: didn't send the right amount of money"
-            );
-            return;
-        }
-        
+        uint256 shares = msg.value / price;
         _totalShares += shares;
         _balances[msg.sender] += shares;
     }
@@ -44,9 +34,9 @@ contract Asset is AssetInterface {
             _balances[msg.sender] >= shares,
             "Asset: cannot sell more shares than you own"
         );
+        payable(msg.sender).transfer(shares * pricePerShare());
         _totalShares -= shares;
         _balances[msg.sender] -= shares;
-        payable(msg.sender).transfer(shares * pricePerShare());
     }
 
     function balanceOf(address addr) external view returns (uint256) {
@@ -71,5 +61,4 @@ contract Asset is AssetInterface {
     function pricePerShare() public view returns (uint256) {
         return address(this).balance / _totalShares;
     }
-
 }
