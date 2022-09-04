@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {AssetInterface} from "./AssetInterface.sol";
+import {IAsset} from "./IAsset.sol";
 
-contract Asset is AssetInterface {
+contract Asset is IAsset {
     
     /// -----------------------------
     ///         State

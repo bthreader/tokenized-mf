@@ -66,8 +66,15 @@ abstract contract AbstractFund is ERC20 {
     /// -----------------------------
 
     /**
-     * @dev Throws for msg.value=0 or msg.value < price. Always ensures 
-     * clients are refunded any cash which is not used for buying shares.
+     * @dev Ensures clients are refunded any cash which is not used for buying
+     * shares.
+     *
+     * @param addr The address of the buy order caller.
+     * @param money The msg.value sent by the caller, throws for zero or less
+     * than price
+     * @param price The price at the point of call.
+     *
+     * @return sharesToExecute The shares the customer can afford to execute.
      */
     function _handleBuyCash(address addr, uint256 money, uint256 price) 
         internal
@@ -77,22 +84,17 @@ abstract contract AbstractFund is ERC20 {
             money > 0,
             "Fund: msg.value must be greater than zero to place buy order"    
         );
-
         if (money < price) {
             // Refund
             payable(addr).transfer(money);
-
             // Throw
             require(
                 false,
                 "Fund: msg.value must be greater than or equal to price"
             );
         }
-        
-        sharesToExecute = (money / price);
-        
-        // Client will spend less than they sent
-        // -> Refund
+        sharesToExecute = money / price;
+        // Client will spend less than they sent -> refund
         if ((sharesToExecute * price) < money) {
             payable(addr).transfer(
                 money - (sharesToExecute * price)

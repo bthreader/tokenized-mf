@@ -2,7 +2,7 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import {AbstractFund} from "./AbstractFund.sol";
-import {Asset} from "../asset/Asset.sol";
+import {IAsset} from "../asset/IAsset.sol";
 
 contract InvestedFund is AbstractFund {
     
@@ -10,11 +10,11 @@ contract InvestedFund is AbstractFund {
     ///         State
     /// -----------------------------
 
-    Asset[] private _investments;
+    address[] private _investments;
     uint256[] private _weights;
     uint256 private _nInvestments;
 
-    constructor (Asset[] memory investments, uint256[] memory weights) {
+    constructor (address[] memory investments, uint256[] memory weights) {
         require(
             investments.length == weights.length,
             "Fund: length mismatch between investments and weights"
@@ -60,8 +60,8 @@ contract InvestedFund is AbstractFund {
     }
 
     /**
-     * @dev Burns shares and pays seller. Creates a cash position 
-     * where necessary.
+     * @dev Burns shares and pays seller. Ensures there is a sufficient cash 
+     * position to do so.
      */
     function placeSellNavOrder(uint256 shares) 
         external 
@@ -99,8 +99,8 @@ contract InvestedFund is AbstractFund {
         uint256 price;
 
         for (uint i = 0; i < _nInvestments; ++i) {
-            shares = _investments[i].balanceOf(address(this));
-            price = _investments[i].pricePerShare();
+            shares = IAsset(_investments[i]).balanceOf(address(this));
+            price = IAsset(_investments[i]).pricePerShare();
             total += shares * price;
         }
 
@@ -118,11 +118,11 @@ contract InvestedFund is AbstractFund {
     {
         shares = new uint256[](_nInvestments);
         for (uint256 i = 0; i < _nInvestments; ++i) {
-            shares[i] = _investments[i].balanceOf(address(this));
+            shares[i] = IAsset(_investments[i]).balanceOf(address(this));
         }
     }
 
-    fallback() external payable {}
+    receive() external payable {}
 
     /// -----------------------------
     ///         Internal
@@ -162,7 +162,7 @@ contract InvestedFund is AbstractFund {
         uint256[] memory proposedShares = new uint256[](_nInvestments);
         for (uint i = 0; i < _nInvestments; ++i) {
             uint256 targetAmount = (amount * _weights[i]) / 100;
-            uint256 price = _investments[i].pricePerShare();
+            uint256 price = IAsset(_investments[i]).pricePerShare();
             proposedShares[i] = targetAmount / price;
         }
         
@@ -175,7 +175,7 @@ contract InvestedFund is AbstractFund {
         
         for (uint256 i = 0; i < _nInvestments; ++i) {
             if (proposedShares[i] < actualShares[i]) {
-                _investments[i].sell(actualShares[i] - proposedShares[i]);
+                IAsset(_investments[i]).sell(actualShares[i] - proposedShares[i]);
             }
             else if (proposedShares[i] > actualShares[i]) {
                 buyIndices[buyIndex] = i;
@@ -186,13 +186,12 @@ contract InvestedFund is AbstractFund {
 
         // Do the buy adjustments
         for (uint256 i = 0; i < buyIndex; ++i) {
+            // Get the investment of the index
             uint256 index = buyIndices[i];
             uint256 sharesToBuy = proposedShares[index] - actualShares[index];
             uint256 amountToSend = 
-                _investments[index].pricePerShare() * sharesToBuy;
-            unchecked{
-                _investments[i].buy{ value : amountToSend }();
-            }
+                IAsset(_investments[index]).pricePerShare() * sharesToBuy;
+            IAsset(_investments[index]).buy{ value : amountToSend }();
         }
     }
 

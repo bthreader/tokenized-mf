@@ -40,17 +40,21 @@ contract ComplexVerifyTest is Test, GenericTest {
 
     function testOneVoteAdd() public {
         vm.startPrank(acc1);
-
-        // Prepare to test emission
         vm.expectEmit(
             true, true, false, false, 
             address(verificationContract)
         );
         emit VoteToAddPlaced(acc1, acc2);
         verificationContract.voteToAdd(acc2);
-        
-        assertTrue(verificationContract.isAdmin(acc2),"acc1 not added to admins");
-        assertTrue(verificationContract.totalAdmins() == 2, "totalAdmins not updated");
+
+        assertTrue(
+            verificationContract.isAdmin(acc2),
+            "acc1 not added to admins"
+        );
+        assertTrue(
+            verificationContract.totalAdmins() == 2,
+            "totalAdmins not updated"
+        );
         vm.stopPrank();
     }
 

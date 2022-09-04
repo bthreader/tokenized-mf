@@ -7,8 +7,17 @@ import {GenericTest} from "../GenericTest.sol";
 import {SimpleVerify} from "../../src/kyc/SimpleVerify.sol";
 
 contract SimpleVerifyTest is Test, GenericTest {
+    
+    /// -----------------------------
+    ///         State
+    /// -----------------------------
+    
     SimpleVerify private verificationContract;
     
+    /// -----------------------------
+    ///         Setup
+    /// -----------------------------
+
     /**
      * @dev acc1 becomes the first admin
      */
@@ -16,6 +25,10 @@ contract SimpleVerifyTest is Test, GenericTest {
         vm.prank(acc1);
         verificationContract = new SimpleVerify();
     }
+
+    /// -----------------------------
+    ///         Tests
+    /// -----------------------------
 
     function testOneAddsTwoAsVerifier() public {
         // Analysed action

@@ -15,8 +15,14 @@ contract InvestedFundTest is Test, GenericTest {
 
     InvestedFund public fund;
     // Can't have dynamic memory arrays so put them in storage
-    Asset[] public investments;
+    address[] public investments;
     uint256[] public weights;
+    Asset public assetA;
+    Asset public assetB;
+
+    /// -----------------------------
+    ///         Setup
+    /// -----------------------------
 
     function setUp() public {
         //
@@ -24,13 +30,13 @@ contract InvestedFundTest is Test, GenericTest {
         //
 
         // Asset A - price = 25
-        Asset assetA = new Asset();
+        assetA = new Asset();
         vm.deal(acc1, 25);
         vm.prank(acc1);
         assetA.topUp{ value : 25 }();
 
         // Asset B - price = 50
-        Asset assetB = new Asset();
+        assetB = new Asset();
         vm.deal(acc1, 50);
         vm.prank(acc1);
         assetB.topUp{ value : 50 }();
@@ -39,8 +45,8 @@ contract InvestedFundTest is Test, GenericTest {
         // Create a fund - price = 100
         //
 
-        investments.push(assetA);
-        investments.push(assetB);
+        investments.push(address(assetA));
+        investments.push(address(assetB));
         weights.push(50);
         weights.push(50);
 
@@ -55,90 +61,105 @@ contract InvestedFundTest is Test, GenericTest {
         fund.addVerified(acc2);
         fund.addVerified(acc3);
         vm.stopPrank();
-
-        // acc2 buys a share
-        vm.deal(acc2, 100);
-        vm.prank(acc2);
-        fund.placeBuyNavOrder{ value : 100 }();
     }
 
     /// -----------------------------
     ///         Tests
     /// -----------------------------
 
-    function testSetUpWasCorrect() public {
-        assertTrue(
-            fund.nav() == 200,
-            "NAV not set correctly"
-        );
-    }
-
-    function testAllocate() public {
-        uint256[] memory ownedShares;
-        ownedShares = fund.ownedShares();
-
-        // 4 * 25 = 100
-        assertTrue(
-            ownedShares[0] == 4,
-            "Allocation was wrong"
-        );
-
-        // 2 * 50 = 100
-        assertTrue(
-            ownedShares[1] == 2,
-            "Allocation was wrong"
-        );
-
-        assertTrue(
-            fund.valueOfInvestments() == 200,
-            "Value of investments not updated"
-        );
-    }
-
-    function testTopUpThenRebalance() public {        
-        // Fund is now 400 total value
-        fund.topUp{ value : 200 }();
-        fund.rebalance();
-        uint256[] memory ownedShares;
-        ownedShares = fund.ownedShares();
-
-        // 8 * 25 = 200
-        assertTrue(
-            ownedShares[0] == 8,
-            "Re-allocation was wrong"
-        );
-
-        // 4 * 50 = 200
-        assertTrue(
-            ownedShares[1] == 4,
-            "Re-allocation was wrong"
-        );
-    }
-
     function testBuy() public {
-        vm.deal(acc3, 100);
-        vm.prank(acc3);
+        vm.deal(acc2, 100);
+        vm.prank(acc2);
         fund.placeBuyNavOrder{ value : 100 }();
         assertTrue(
-            fund.balanceOf(acc3) == 1,
+            fund.balanceOf(acc2) == 1,
             "Balance not added"
         );
         assertTrue(
             fund.navPerShare() == 100,
             "Unexpected price change"
         );
+        assertTrue(
+            fund.valueOfInvestments() == 200,
+            "New cash not invested"
+        );
+        uint256[] memory ownedShares = fund.ownedShares();
+        // 100 / 25 = 4
+        assertTrue(
+            ownedShares[0] == 4,
+            "Asset A not re-allocated"
+        );
+        // 100 / 50 = 2
+        assertTrue(
+            ownedShares[1] == 2,
+            "Asset B not re-allocated"
+        );
     }
 
-    function testAutoSell() public {
-        assertTrue(
-            acc2.balance == 0,
-            "Wrong start point"
-        );
+    function testSell() public {
+        vm.deal(acc2, 100);
+        vm.prank(acc2);
+        fund.placeBuyNavOrder{ value : 100 }();
         vm.prank(acc2);
         fund.placeSellNavOrder(1);
         assertTrue(
             acc2.balance == 100,
             "Money not transferred"
+        );
+        assertTrue(
+            fund.valueOfInvestments() == 100,
+            "Value of investments not adjusted"
+        );
+        uint256[] memory ownedShares = fund.ownedShares();
+        // 50 / 25 = 2
+        assertTrue(
+            ownedShares[0] == 2,
+            "Asset A not re-allocated"
+        );
+        // 50 / 50 = 1
+        assertTrue(
+            ownedShares[1] == 1,
+            "Asset B not re-allocated"
+        );
+    }
+
+    function testAssetAPriceIncrease() public {
+        fund.rebalance();
+        assertTrue(
+            fund.valueOfInvestments() == 100,
+            "Value of investments not updated"
+        );
+        // Increase Asset A price to 50
+        // Currently 3 shares @ 25 = 75 (2 owned by fund)
+        // Double the price => add 75
+        vm.deal(acc1, 75);
+        vm.prank(acc1);
+        assetA.topUp{ value : 75 }();
+        assertTrue(
+            assetA.pricePerShare() == 50,
+            "Asset A price increase not successful"
+        );
+        // (50 * 2) + (50 * 1) = 150
+        assertTrue(
+            fund.valueOfInvestments() == 150,
+            "Value of investments not updated"
+        );
+        fund.rebalance();
+        // (50 * 1) + (50 * 1) = 100
+        assertTrue(
+            fund.valueOfInvestments() == 100,
+            "Value of investments not updated"
+        );
+        uint256[] memory ownedShares = fund.ownedShares();
+        // 150 floor div 50 = 1
+        assertTrue(
+            ownedShares[0] == 1,
+            "Asset A not re-allocated"
+        );
+        // 150 floor div 50 = 1
+        assertTrue(
+            ownedShares[1] == 1,
+            "Asset B not re-allocated"
         );
     }
 }

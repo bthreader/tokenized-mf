@@ -2,6 +2,7 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import {OffChainFund} from "./OffChainFund.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 contract Swap {
     
@@ -9,10 +10,10 @@ contract Swap {
     ///         State
     /// -----------------------------
     
-    OffChainFund public _assetA;
-    OffChainFund public _assetB;
+    address public _assetA;
+    address public _assetB;
 
-    constructor (OffChainFund assetA, OffChainFund assetB) {
+    constructor (address assetA, address assetB) {
         _assetA = assetA;
         _assetB = assetB;
     }
@@ -32,13 +33,13 @@ contract Swap {
     )
         external 
     {
-        _assetA.transferFrom({
+        IERC20(_assetA).transferFrom({
             from: counterpartyA, 
             to: counterpartyB,
             amount: amountAssetA
         });
 
-        _assetB.transferFrom({
+        IERC20(_assetB).transferFrom({
             from: counterpartyB, 
             to: counterpartyA,
             amount: amountAssetB

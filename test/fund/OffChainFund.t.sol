@@ -14,17 +14,6 @@ contract OffChainFundTest is Test, GenericTest {
 
     OffChainFund public fund;
 
-    constructor () {
-        vm.startPrank(acc1);
-        fund = new OffChainFund();
-        fund.addAccountant(acc1);
-        fund.setNav(100);
-        fund.addVerifier(acc1);
-        fund.addVerified(acc2);
-        fund.addVerified(acc3);
-        vm.stopPrank();
-    }
-
     /// -----------------------------
     ///         Events
     /// -----------------------------
@@ -39,14 +28,33 @@ contract OffChainFundTest is Test, GenericTest {
     );
 
     /// -----------------------------
+    ///         Setup
+    /// -----------------------------
+
+    function setUp() public {
+        vm.startPrank(acc1);
+        fund = new OffChainFund();
+        // Add accountants
+        fund.addAccountant(acc1);
+        // Set price = 100
+        fund.setNav(100);
+        // Add verifiers
+        fund.addVerifier(acc1);
+        fund.addVerified(acc2);
+        // Add verified
+        fund.addVerified(acc3);
+        vm.stopPrank();
+    }
+
+    /// -----------------------------
     ///         Tests
     /// -----------------------------
     
     function testBuyOrder() public {
         vm.deal(acc2, 1000);
         vm.prank(acc2);
+        // 10 * 100 Wei = 1000
         fund.placeBuyNavOrder{ value : 1000 }();
-        
         assertTrue(
             fund.balanceOf(acc2) == 10,
             "Shares not added to account"
@@ -57,41 +65,27 @@ contract OffChainFundTest is Test, GenericTest {
         );
     }
 
-    function testSellOrderAdded() public {
-        // Set up
+    function testSellOrderQueued() public {
         vm.deal(acc2, 1000);
         vm.startPrank(acc2);
         fund.placeBuyNavOrder{ value : 1000 }();
-        uint256 orderId = fund.placeSellNavOrder(10);
-
-        assertTrue(
-            orderId == 1,
-            "Incrementer not working as expected"
-        );
-
+        fund.placeSellNavOrder(10);
         assertTrue(
             fund.myCustodyAccountBalance() == 10,
             "Funds not added to custody account"
         );
-
         assertTrue(
             fund.balanceOf(acc2) == 0,
             "Funds not removed from main account"
         );
-
-        // Test for (unwanted) side effects
-        assertTrue(
-            fund.navPerShare() == 9,
-            "Incorrect price"
-        );
         assertTrue(
             fund.totalSupply() == 11,
-            "Incorrect supply"
+            "(False) change to supply"
         );
         vm.stopPrank();
     }
 
-    function testDeleteSellOrder() public {
+    function testDeleteQueuedSellOrder() public {
         vm.deal(acc2, 1000);
         vm.startPrank(acc2);
         fund.placeBuyNavOrder{ value : 1000 }();
@@ -99,9 +93,16 @@ contract OffChainFundTest is Test, GenericTest {
         fund.cancelQueuedSellNavOrder(orderId);
         (address addr, uint256 shares) 
             = fund.getQueuedSellNavOrderDetails(orderId);
-        vm.stopPrank();
-
         assertTrue(addr == address(0), "Order still exists");
+        assertTrue(
+            fund.myCustodyAccountBalance() == 0,
+            "Shares not removed from custody account"
+        );
+        assertTrue(
+            fund.balanceOf(acc2) == 10,
+            "Shares not put back into main account"
+        );
+        vm.stopPrank();
     }
 
     function testSellOrderExecuted() public {

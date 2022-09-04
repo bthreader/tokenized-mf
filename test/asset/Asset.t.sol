@@ -7,7 +7,15 @@ import {Asset} from "../../src/asset/Asset.sol";
 
 contract AssetTest is Test, GenericTest {
 
+    /// -----------------------------
+    ///         State
+    /// -----------------------------
+
     Asset public asset;
+
+    /// -----------------------------
+    ///         Setup
+    /// -----------------------------
 
     function setUp() public {
         // Price = 25
@@ -17,6 +25,10 @@ contract AssetTest is Test, GenericTest {
         vm.prank(acc1);
         asset.topUp{ value : 25 }();
     }
+
+    /// -----------------------------
+    ///         Tests
+    /// -----------------------------
 
     function testPriceIsCorrect() public {
         assertTrue(

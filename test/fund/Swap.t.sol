@@ -8,11 +8,20 @@ import {OffChainFund} from "../../src/fund/OffChainFund.sol";
 import {Swap} from "../../src/fund/Swap.sol";
 
 contract SwapTest is Test, GenericTest {
+    
+    /// -----------------------------
+    ///         State
+    /// -----------------------------
+    
     OffChainFund public _fundA;
     OffChainFund public _fundB;
     Swap public swap;
 
-    constructor () {    
+    /// -----------------------------
+    ///         Setup
+    /// -----------------------------
+
+    function setUp() public {    
         
         //
         // Fund A
@@ -55,12 +64,16 @@ contract SwapTest is Test, GenericTest {
         vm.prank(acc3);
         _fundB.placeBuyNavOrder{ value : 1000 }();
 
-        swap = new Swap({assetA : _fundA, assetB : _fundB});
+        swap = new Swap({assetA : address(_fundA), assetB : address(_fundB)});
         vm.startPrank(acc1);
         _fundA.addVerified(address(swap));
         _fundB.addVerified(address(swap));
         vm.stopPrank();
     }
+
+    /// -----------------------------
+    ///         Tests
+    /// -----------------------------
 
     function testSwap() public {
         // Approve the swap contract for 10 shares
