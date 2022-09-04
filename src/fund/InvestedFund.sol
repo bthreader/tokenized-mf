@@ -175,7 +175,9 @@ contract InvestedFund is AbstractFund {
         
         for (uint256 i = 0; i < _nInvestments; ++i) {
             if (proposedShares[i] < actualShares[i]) {
-                IAsset(_investments[i]).sell(actualShares[i] - proposedShares[i]);
+                IAsset(_investments[i]).sell(
+                    actualShares[i] - proposedShares[i]
+                );
             }
             else if (proposedShares[i] > actualShares[i]) {
                 buyIndices[buyIndex] = i;
