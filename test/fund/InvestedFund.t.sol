@@ -123,7 +123,7 @@ contract InvestedFundTest is Test, GenericTest {
         );
     }
 
-    function testAssetAPriceIncrease() public {
+    function testAssetPriceIncrease() public {
         fund.rebalance();
         assertTrue(
             fund.valueOfInvestments() == 100,

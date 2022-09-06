@@ -186,12 +186,12 @@ contract OffChainFund is AbstractFund {
         // Make sure it was the sender who owns the order
         (address addr, uint256 shares) = _navSellOrders.getOrderDetails(id);
         require(
-            msg.sender == addr,
-            "Fund: must be the order placer to cancel the order"
-        );
-        require(
             addr != address(0),
             "Fund: order not in queue"
+        );
+        require(
+            msg.sender == addr,
+            "Fund: must be the order placer to cancel the order"
         );
         _navSellOrders.deleteId(id);
         _transferFromCustodyAccount({
@@ -260,7 +260,10 @@ contract OffChainFund is AbstractFund {
                     "Fund: run out of money to close sell orders"
                 );
                 payable(clientAddr).transfer(owedCash);
-                _burn({addr : clientAddr, amount : clientShares});
+                _burnFromCustodyAccount({
+                    addr : clientAddr,
+                    amount : clientShares
+                });
 
                 // Log
                 emit QueuedOrderActioned({
@@ -306,10 +309,10 @@ contract OffChainFund is AbstractFund {
     ///         Private
     /// -----------------------------
 
-    function _burnFromCustodyAccount(address addr, uint256 shares) private {
-        _custodyAccounts[addr] -= shares;
-        _totalShares -= shares;
-        emit Transfer(addr, address(0), shares);
+    function _burnFromCustodyAccount(address addr, uint256 amount) private {
+        _custodyAccounts[addr] -= amount;
+        _totalShares -= amount;
+        emit Transfer(addr, address(0), amount);
     }
 
     function _transferFromCustodyAccount(

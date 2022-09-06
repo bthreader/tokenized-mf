@@ -243,6 +243,10 @@ contract ERC20 is ComplexVerify, IERC20 {
         emit AccountantRemoved({accountant : addr, admin : msg.sender});
     }
 
+    function isAccountant(address addr) external view returns (bool) {
+        return _accountants[addr];
+    }
+
     /// ----------------------------
     ///         Internal
     /// ----------------------------

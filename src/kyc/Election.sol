@@ -20,7 +20,7 @@ contract Election {
     function vote(address voterAddr) external {
         require(
             _hasVoted[voterAddr] == false,
-            "Address has already voted"
+            "Election: Address has already voted"
         );
         
         _votes += 1;
@@ -33,7 +33,7 @@ contract Election {
     function removeVote(address voterAddr) external {
         require(
             _hasVoted[voterAddr] == true,
-            "Address has not voted"
+            "Election: Address has not voted"
         );
         
         _votes -= 1;

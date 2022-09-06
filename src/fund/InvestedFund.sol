@@ -169,7 +169,6 @@ contract InvestedFund is AbstractFund {
         // Iterate through each investments
         // Action sell orders on investments that need adjustmenting down
         // Save the buy adjustments to memory for later
-        
         uint256[] memory buyIndices = new uint256[](_nInvestments);
         uint256 buyIndex = 0;
         

@@ -105,7 +105,25 @@ contract OffChainFundTest is Test, GenericTest {
         vm.stopPrank();
     }
 
-    function testSellOrderExecuted() public {
+    function testCancelQueuedSellOrderFailsNotPlacer() public {
+        vm.deal(acc2, 1000);
+        vm.startPrank(acc2);
+        fund.placeBuyNavOrder{ value : 1000 }();
+        uint256 orderId = fund.placeSellNavOrder(10);
+        vm.stopPrank();
+
+        vm.expectRevert(bytes("Fund: must be the order placer to cancel the order"));
+        vm.prank(acc3);
+        fund.cancelQueuedSellNavOrder(orderId);
+    }
+
+    function testCancelQueuedSellOrderFailsNoOrder() public {
+        vm.expectRevert(bytes("Fund: order not in queue"));
+        vm.prank(acc2);
+        fund.cancelQueuedSellNavOrder(11111);
+    }
+
+    function testSellOrderExecutedViaBuyOrder() public {
         // Set up
         vm.deal(acc2, 1000);
         vm.startPrank(acc2);
@@ -148,11 +166,47 @@ contract OffChainFundTest is Test, GenericTest {
             fund.myCustodyAccountBalance() == 0, 
             "Shares not taken out of custody account"
         );
-        assertTrue(fund.balanceOf(acc3) == 10, "Order not closed");
+        assertTrue(fund.balanceOf(acc3) == 10, "Order not executed");
 
         assertTrue(
             fund.totalSupply() == 11,
             "Supply shouldn't have changed"
         );
+    }
+
+    function testSellOrderExecutedViaClose() public {
+        // Set up
+        vm.deal(acc2, 1000);
+        vm.startPrank(acc2);
+        fund.placeBuyNavOrder{ value : 1000 }();
+        fund.placeSellNavOrder(10);
+        vm.stopPrank();
+
+        // Set NAV per share == 100
+        vm.startPrank(acc1);
+        fund.setNav(1100);
+        fund.closeSellNavOrders();
+    }
+
+    function testCloseFailsDueToLackOfCash() public {
+        // Set up
+        vm.deal(acc2, 1000);
+        vm.startPrank(acc2);
+        fund.placeBuyNavOrder{ value : 1000 }();
+        fund.placeSellNavOrder(10);
+        vm.stopPrank();
+
+        // Set NAV per share == 100
+        vm.startPrank(acc1);
+        fund.setNav(1100);
+
+        // Remove the cash needed to close the sell orders
+        fund.withdraw(1000);
+        
+        vm.expectRevert(bytes(
+            "Fund: run out of money to close sell orders"
+        ));
+        fund.closeSellNavOrders();
+        vm.stopPrank();
     }
 }
