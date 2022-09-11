@@ -89,7 +89,7 @@ contract NavOrderQueue is AbstractOrderQueue {
         else {
             require(
                 currentShares >= shares,
-                "Can't remove more shares than are in the order"
+                "Order Queue: Can't remove more shares than are in the order"
             );
 
             newShares = currentShares - shares;

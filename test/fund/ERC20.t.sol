@@ -28,18 +28,71 @@ contract ERC20Test is Test, GenericTest {
         address indexed admin
     );
 
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
+
     /// -----------------------------
     ///         Setup
     /// -----------------------------
 
     function setUp() public {
-        vm.prank(acc1);
+        vm.startPrank(acc1);
         token = new ERC20();
+        token.addVerifier(acc1);
+        token.addVerified(acc2);
+        token.addVerified(acc3);
+        vm.stopPrank();
     }
 
     /// -----------------------------
     ///         Tests
     /// -----------------------------
+
+    function testApprove() public {
+        vm.prank(acc2);
+        vm.expectEmit(true, true, false, false);
+        emit Approval({owner : acc2, spender : acc3, value : 10});
+        token.approve({spender : acc3, amount : 10});
+        assertTrue(
+            token.allowance({owner : acc2, spender : acc3}) == 10,
+            "Allowance not added"
+        );
+    }
+
+    function testApproveFails() public {
+        vm.prank(acc2);
+        vm.expectRevert(bytes(
+            "ERC20: can only provide allowances to verified customers"
+        ));
+        token.approve({spender: address(0x66), amount: 10});
+    }
+
+    function testChangeAllowance() public {
+        vm.startPrank(acc2);
+        token.approve({spender: acc3, amount: 10});
+        token.increaseAllowance({spender : acc3, addedValue : 5});
+        assertTrue(
+            token.allowance({owner : acc2, spender : acc3}) == 15,
+            "Allowance not added"
+        );
+        token.decreaseAllowance({spender : acc3, subtractedValue : 15});
+        assertTrue(
+            token.allowance({owner : acc2, spender : acc3}) == 0,
+            "Allowance not removed"
+        );
+        vm.stopPrank();
+    }
+
+    function testChangeAllowanceFails() public {
+        vm.prank(acc2);
+        vm.expectRevert(bytes(
+            "ERC20: cannot modify the allowance of a non-verified customer"
+        ));
+        token.increaseAllowance({spender: address(0x66), addedValue : 10});
+    }
 
     function testAddAccountant() public {
         vm.expectEmit(true, true, false, false);

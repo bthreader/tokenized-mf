@@ -157,7 +157,7 @@ contract ERC20 is ComplexVerify, IERC20 {
     {
         require(
             isVerified(to),
-            "ERC20: can only provide allowances to verified customers"
+            "ERC20: can only transfer to verified customers"
         );
         require(
             _allowances[from][msg.sender] >= amount,

@@ -27,6 +27,8 @@ contract OffChainFundTest is Test, GenericTest {
         uint256 sellOrderId
     );
 
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
     /// -----------------------------
     ///         Setup
     /// -----------------------------
@@ -208,5 +210,96 @@ contract OffChainFundTest is Test, GenericTest {
         ));
         fund.closeSellNavOrders();
         vm.stopPrank();
+    }
+
+    //
+    // ERC20 tests continued
+    //
+
+    function testTransfer() public {
+        vm.deal(acc2, 1000);
+        vm.startPrank(acc2);
+        fund.placeBuyNavOrder{ value : 1000 }();
+        vm.expectEmit(true, true, false, false);
+        emit Transfer({from : acc2, to : acc3, value : 10});
+        fund.transfer({to : acc3, amount : 10});
+        assertTrue(
+            fund.balanceOf(acc3) == 10,
+            "Shares not transferred"
+        );
+    }
+
+    function testTransferFail() public {
+        vm.deal(acc2, 1000);
+        vm.startPrank(acc2);
+        fund.placeBuyNavOrder{ value : 1000 }();
+        
+        vm.expectRevert(bytes(
+            "ERC20: can only transfer to verified customers"
+        ));
+        fund.transfer({to : address(0x66), amount : 10});
+        assertTrue(
+            fund.balanceOf(acc2) == 10,
+            "Shares shouldn't have been transferred"
+        );
+
+        vm.expectRevert(bytes(
+            "ERC20: insufficient funds to make transfer"
+        ));
+        fund.transfer({to : acc3, amount : 66});
+    }
+
+    function testTransferFrom() public {
+        vm.deal(acc2, 1000);
+        vm.startPrank(acc2);
+        fund.placeBuyNavOrder{ value : 1000 }();
+        fund.approve({spender : acc3, amount: 10});
+        address acc4 = address(0x14);
+        vm.stopPrank();
+        vm.prank(acc1);
+        fund.addVerified(acc4);
+        vm.prank(acc3);
+        fund.transferFrom({from : acc2, to : acc4, amount : 10});
+        assertTrue(
+            fund.balanceOf(acc4) == 10,
+            "Funds not transferred"
+        );
+    }
+
+    function testTransferFromFail() public {
+        vm.deal(acc2, 1000);
+        vm.startPrank(acc2);
+        fund.placeBuyNavOrder{ value : 1000 }();
+        fund.approve({spender : acc3, amount: 10});
+        vm.stopPrank();
+        
+        vm.startPrank(acc3);
+        vm.expectRevert(bytes(
+            "ERC20: can only transfer to verified customers"
+        ));
+        fund.transferFrom({from : acc2, to : address(0x66), amount : 10});
+        
+        vm.expectRevert(bytes(
+            "ERC20: insufficient allowance to transfer"
+        ));
+        fund.transferFrom({from : acc2, to : acc3, amount : 66});
+        vm.stopPrank();
+        
+        vm.prank(acc2);
+        fund.increaseAllowance({spender : acc3, addedValue : 10});
+        vm.expectRevert(bytes(
+            "ERC20: owner has insufficient funds"
+        ));
+        vm.prank(acc3);
+        fund.transferFrom({from : acc2, to : acc3, amount : 20});
+    }
+
+    function testBurnAndReissue() public {
+        vm.deal(acc2, 1000);
+        vm.prank(acc2);
+        fund.placeBuyNavOrder{ value : 1000 }();
+        vm.prank(acc1);
+        fund.burnAndReissue({oldAddr : acc2, newAddr : acc3});
+        assertTrue(fund.balanceOf(acc3) == 10);
     }
 }

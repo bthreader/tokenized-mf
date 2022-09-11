@@ -67,6 +67,34 @@ contract InvestedFundTest is Test, GenericTest {
     ///         Tests
     /// -----------------------------
 
+    function testWrongLengthsInputs() public {
+        delete weights;
+        weights.push(49);
+        weights.push(49);
+        weights.push(2);
+        vm.expectRevert(bytes(
+            "Fund: length mismatch between investments and weights"
+        ));
+        fund = new InvestedFund({
+            investments : investments,
+            weights : weights
+        });
+    }
+    
+    function testBadWeights() public {        
+        delete weights;
+        weights.push(50);
+        weights.push(51);
+
+        vm.expectRevert(bytes(
+            "Fund: weights must add to 100"
+        ));
+        fund = new InvestedFund({
+            investments : investments,
+            weights : weights
+        });
+    }
+
     function testBuy() public {
         vm.deal(acc2, 100);
         vm.prank(acc2);
@@ -121,6 +149,12 @@ contract InvestedFundTest is Test, GenericTest {
             ownedShares[1] == 1,
             "Asset B not re-allocated"
         );
+    }
+
+    function testSellFail() public {
+        vm.prank(acc2);
+        vm.expectRevert("Fund: insufficient balance to place sell order");
+        fund.placeSellNavOrder(666);
     }
 
     function testAssetPriceIncrease() public {

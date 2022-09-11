@@ -78,4 +78,26 @@ contract OrderListTest is Test, GenericTest {
             "LL not re-iniatilized"
         );
     }
+
+    function testOrderChanged() public {
+        uint256 orderId = buyList.enqueue({addr : acc1, shares : 50});
+        buyList.changeSharesOnId({id : orderId, add : false, shares : 25});
+        (address addr, uint256 shares) = buyList.getOrderDetails(orderId);
+        assertTrue(
+            shares == 25,
+            "Shares not decremented"
+        );
+        assertTrue(
+            addr == acc1,
+            "Account shouldn't have changed"
+        );
+    }
+
+    function testOrderChangeFail() public {
+        uint256 orderId = buyList.enqueue({addr : acc1, shares : 1});
+        vm.expectRevert(bytes(
+            "Order Queue: Can't remove more shares than are in the order"
+        ));
+        buyList.changeSharesOnId({id : orderId, add : false, shares : 5});
+    }
 }
