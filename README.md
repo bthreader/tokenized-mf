@@ -14,9 +14,6 @@ The objective of the research was to implement two realistic, fully functioning 
 1. Off-chain fund guaranteed buyers liquidity 24/7 at NAVPS. Sellers were offered guaranteed liquidity daily and potential liquidity 24/7 again at NAVPS. This was handled by a sell order queue thus facilitating peer to peer trading through the contract (shown below).
 
 ```mermaid
----
-title: Buy order flow chart
----
 flowchart LR
     A(Client places buy order) --> B{Sell orders outstanding?} 
     B --> |No| C(Currency moved into the contract\n and share ownership adjusted)
@@ -26,4 +23,4 @@ flowchart LR
 
 2. On-chain fund rebalanced itself according to an investment strategy provided by the fund manager upon contract construction, and guaranteed liqudity to buyers and sellers 24/7 by adjusting investment positions.
 
-Please find the full thesis in Dissertation.pdf.
+*Please find the full thesis in Dissertation.pdf.*
